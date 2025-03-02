@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Settings } from 'lucide-react';
 import { createAIPortfolio } from '../services/portfolioService';
 import { getAIPortfolioSuggestion } from '../services/aiService';
+import AISettingsModal from './AISettingsModal';
 
 interface AIPortfolioModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
   });
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('medium');
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   
   const handleAllocationChange = (type: 'stocks' | 'bonds' | 'alternatives', value: number) => {
     // Ensure the total allocation is always 100%
@@ -99,9 +101,18 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Create AI Portfolio</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setIsSettingsModalOpen(true)} 
+              className="text-gray-500 hover:text-gray-700"
+              title="AI Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
         
         <div className="p-6">
@@ -284,6 +295,11 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
           )}
         </div>
       </div>
+      
+      <AISettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
     </div>
   );
 };

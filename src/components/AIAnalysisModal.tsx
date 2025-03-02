@@ -27,6 +27,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
   
   const handleTabChange = (tab: 'performance' | 'risk' | 'allocation' | 'rebalance') => {
     setActiveTab(tab);
+    setAnalysis(null); // Reset analysis state before fetching new data
     fetchAnalysis(tab);
   };
   
@@ -95,7 +96,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-3">Best Performers</h3>
                       <div className="bg-white border border-gray-200 rounded-md">
-                        {analysis.best_performers.map((asset: any, index: number) => (
+                        {analysis.best_performers && analysis.best_performers.map((asset: any, index: number) => (
                           <div key={index} className="flex justify-between items-center p-3 border-b last:border-0">
                             <div>
                               <div className="font-medium text-gray-900">{asset.ticker}</div>
@@ -113,7 +114,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-3">Worst Performers</h3>
                       <div className="bg-white border border-gray-200 rounded-md">
-                        {analysis.worst_performers.map((asset: any, index: number) => (
+                        {analysis.worst_performers && analysis.worst_performers.map((asset: any, index: number) => (
                           <div key={index} className="flex justify-between items-center p-3 border-b last:border-0">
                             <div>
                               <div className="font-medium text-gray-900">{asset.ticker}</div>
@@ -144,7 +145,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
                   
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Risk Factors</h3>
                   <div className="space-y-4 mb-6">
-                    {analysis.risk_factors.map((factor: any, index: number) => (
+                    {analysis.risk_factors && analysis.risk_factors.map((factor: any, index: number) => (
                       <div key={index} className="bg-white border border-gray-200 rounded-md p-4">
                         <div className="flex justify-between mb-2">
                           <span className="font-medium text-gray-900">{factor.factor}</span>
@@ -192,7 +193,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {analysis.current_allocation.map((item: any, index: number) => (
+                        {analysis.current_allocation && analysis.current_allocation.map((item: any, index: number) => (
                           <tr key={index}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {item.category}
@@ -248,7 +249,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {analysis.current_vs_target.map((item: any, index: number) => (
+                        {analysis.current_vs_target && analysis.current_vs_target.map((item: any, index: number) => (
                           <tr key={index}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">{item.ticker}</div>
@@ -286,7 +287,7 @@ const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClose, port
               <div className="mt-6 border-t pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">AI Recommendations</h3>
                 <ul className="space-y-2">
-                  {analysis.recommendations.map((recommendation: string, index: number) => (
+                  {analysis.recommendations && analysis.recommendations.map((recommendation: string, index: number) => (
                     <li key={index} className="flex items-start">
                       <div className="flex-shrink-0 h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center mr-2">
                         <span className="text-blue-600 text-xs font-bold">{index + 1}</span>

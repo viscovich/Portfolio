@@ -51,13 +51,14 @@ export async function getMarketSentimentHistory(days: number = 7): Promise<Marke
     // const { data, error } = await supabase
     //   .from('market_sentiment')
     //   .select('*')
-    //   .order('date', { ascending: false })
+    //   .order('date', { ascending: true })
     //   .limit(days);
     
     // if (error) throw error;
     // return data;
     
-    return mockMarketSentiment;
+    // Return a copy of the array in ascending date order (oldest first)
+    return [...mockMarketSentiment].reverse();
   } catch (error) {
     console.error('Error fetching market sentiment history:', error);
     return [];
