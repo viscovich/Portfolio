@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, PieChart, BarChart2, Database, HelpCircle } from 'lucide-react';
+import { Home, PieChart, BarChart2, Database } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
@@ -12,8 +12,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <Home className="h-5 w-5" /> },
     { name: 'Market Sentiment', path: '/market-sentiment', icon: <BarChart2 className="h-5 w-5" /> },
-    { name: 'Assets', path: '/assets', icon: <Database className="h-5 w-5" /> },
-    { name: 'Help', path: '/help', icon: <HelpCircle className="h-5 w-5" /> }
+    { name: 'Assets', path: '/assets', icon: <Database className="h-5 w-5" /> }
   ];
   
   return (

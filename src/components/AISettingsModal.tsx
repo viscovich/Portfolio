@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
-import { getAISettings, updateAISettings } from '../services/aiService';
+import { X, Save, Zap } from 'lucide-react';
+import { getAISettings, updateAISettings, testAIConnection } from '../services/aiService';
 
 interface AISettingsModalProps {
   isOpen: boolean;
@@ -15,6 +15,12 @@ const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) =>
   });
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+    details?: any;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +51,30 @@ const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) =>
       console.error('Error saving AI settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      // First save the current settings
+      await updateAISettings(settings);
+      
+      // Then test the connection
+      const result = await testAIConnection();
+      setTestResult(result);
+      
+      console.log('Test connection result:', result);
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      setTestResult({
+        success: false,
+        message: 'Error testing connection',
+        details: { error: error instanceof Error ? error.message : String(error) }
+      });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -126,8 +156,44 @@ const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) =>
               Settings saved successfully!
             </div>
           )}
+          
+          {testResult && (
+            <div className={`mt-4 p-3 ${testResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} rounded-md text-sm`}>
+              <div className="font-medium">{testResult.message}</div>
+              {testResult.details && (
+                <div className="mt-2 text-xs">
+                  {testResult.success ? (
+                    <div>Response: {testResult.details.responsePreview}</div>
+                  ) : (
+                    <div>
+                      <div>Error: {testResult.details.error}</div>
+                      {testResult.details.settings && (
+                        <div className="mt-1">
+                          <div>Provider: {testResult.details.settings.provider}</div>
+                          <div>Model: {testResult.details.settings.model}</div>
+                          <div>API Key: {testResult.details.settings.hasApiKey ? 'Provided' : 'Missing'}</div>
+                          {testResult.details.settings.apiKeyLength && (
+                            <div>API Key Length: {testResult.details.settings.apiKeyLength} characters</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-between">
+            <button
+              onClick={handleTestConnection}
+              disabled={testingConnection || !settings.apiKey}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 flex items-center"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              {testingConnection ? 'Testing...' : 'Test Connection'}
+            </button>
+            
             <button
               onClick={handleSaveSettings}
               disabled={loading}

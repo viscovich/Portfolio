@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatDateShort, formatPercentage, getColorForPerformance } from '../lib/utils';
 import { Portfolio } from '../types';
-import { Eye, BarChart2, Download } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 interface PortfolioListProps {
   portfolios: Portfolio[];
@@ -72,7 +72,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ portfolios }) => {
                 {formatPercentage(portfolio.metrics?.volatility_3y || 0)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {portfolio.metrics?.sharpe_3y.toFixed(2) || '0.00'}
+                {portfolio.metrics?.sharpe_3y?.toFixed(2) || '0.00'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="h-8 w-20">
@@ -80,7 +80,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ portfolios }) => {
                     <path
                       d={`M0,15 Q25,${Math.random() * 20} 50,${Math.random() * 20} T100,${Math.random() * 20}`}
                       fill="none"
-                      stroke={portfolio.metrics?.return_3y > 0 ? "#10b981" : "#ef4444"}
+                      stroke={(portfolio.metrics?.return_3y || 0) > 0 ? "#10b981" : "#ef4444"}
                       strokeWidth="2"
                     />
                   </svg>
@@ -107,12 +107,6 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ portfolios }) => {
                   <Link to={`/portfolios/${portfolio.id}`} className="text-blue-600 hover:text-blue-900">
                     <Eye className="h-5 w-5" />
                   </Link>
-                  <button className="text-blue-600 hover:text-blue-900">
-                    <BarChart2 className="h-5 w-5" />
-                  </button>
-                  <button className="text-blue-600 hover:text-blue-900">
-                    <Download className="h-5 w-5" />
-                  </button>
                 </div>
               </td>
             </tr>

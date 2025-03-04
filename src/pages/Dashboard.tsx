@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import PortfolioList from '../components/PortfolioList';
 import MarketSentimentCard from '../components/MarketSentimentCard';
 import AIPortfolioModal from '../components/AIPortfolioModal';
@@ -48,10 +48,6 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <div className="flex space-x-2">
-          <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center">
-            <Plus className="h-5 w-5 mr-1" />
-            Add Portfolio
-          </button>
           <button 
             onClick={() => setIsAIModalOpen(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center"
@@ -80,10 +76,7 @@ const Dashboard: React.FC = () => {
         ) : (
           <div className="text-center py-10">
             <p className="text-gray-500">No portfolios found. Create your first portfolio to get started.</p>
-            <div className="mt-4 flex justify-center space-x-4">
-              <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                Add Portfolio
-              </button>
+            <div className="mt-4 flex justify-center">
               <button 
                 onClick={() => setIsAIModalOpen(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

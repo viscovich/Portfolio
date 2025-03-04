@@ -4,8 +4,14 @@ import { AIPortfolioRequest, AIAnalysisRequest } from '../types';
 const DEFAULT_SETTINGS = {
   provider: 'openrouter',
   model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
-  apiKey: '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'
+  apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || ''
 };
+
+// Log environment variable availability (without exposing the actual key)
+console.log('Environment variables loaded:', {
+  VITE_OPENROUTER_API_KEY_EXISTS: !!import.meta.env.VITE_OPENROUTER_API_KEY,
+  VITE_OPENROUTER_API_KEY_LENGTH: import.meta.env.VITE_OPENROUTER_API_KEY ? import.meta.env.VITE_OPENROUTER_API_KEY.length : 0
+});
 
 // Settings storage key
 const SETTINGS_STORAGE_KEY = 'portfolio_ai_settings';
@@ -49,42 +55,128 @@ async function callOpenRouterAPI(prompt: string, settings?: any): Promise<any> {
   // Log the prompt being sent to the API
   console.log('AI Prompt:', prompt);
   
+  // Log detailed API settings for debugging
+  console.log('API Settings:', {
+    provider: aiSettings.provider,
+    model: aiSettings.model,
+    apiKey: aiSettings.apiKey ? `${aiSettings.apiKey.substring(0, 8)}...${aiSettings.apiKey.substring(aiSettings.apiKey.length - 4)}` : 'undefined',
+    hasApiKey: !!aiSettings.apiKey,
+    origin: window.location.origin
+  });
+  
+  // Check if API key is present and properly formatted
+  if (!aiSettings.apiKey) {
+    console.error('API key is missing');
+    throw new Error('API error: No auth credentials found - API key is missing');
+  }
+  
+  // Ensure API key is properly formatted (OpenRouter keys start with 'sk-or-')
+  if (aiSettings.provider === 'openrouter' && !aiSettings.apiKey.startsWith('sk-or-')) {
+    console.warn('API key may be invalid - OpenRouter keys should start with "sk-or-"');
+  }
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${aiSettings.apiKey.trim()}`,
+    'HTTP-Referer': window.location.origin,
+    'X-Title': 'Portfolio AI Assistant'
+  };
+  
+  const body = {
+    model: aiSettings.model,
+    messages: [
+      { 
+        role: 'system', 
+        content: 'You are a financial advisor AI assistant that specializes in portfolio management and investment advice. Always respond with valid JSON when asked to do so, wrapped in triple backticks with the json tag like this: ```json. Never include markdown formatting in your JSON responses.' 
+      },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 1000
+  };
+  
+  console.log('Request Headers:', {
+    'Content-Type': headers['Content-Type'],
+    'Authorization': headers['Authorization'] ? 'Bearer [REDACTED]' : 'undefined',
+    'Authorization-Length': headers['Authorization'] ? headers['Authorization'].length : 0,
+    'HTTP-Referer': headers['HTTP-Referer'],
+    'X-Title': headers['X-Title']
+  });
+  
+  console.log('Request Body:', {
+    model: body.model,
+    messages: [
+      { role: body.messages[0].role, content: '(system prompt)' },
+      { role: body.messages[1].role, content: '(user prompt)' }
+    ],
+    temperature: body.temperature,
+    max_tokens: body.max_tokens
+  });
+  
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${aiSettings.apiKey}`,
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Portfolio AI Assistant'
-      },
-      body: JSON.stringify({
-        model: aiSettings.model,
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a financial advisor AI assistant that specializes in portfolio management and investment advice. Always respond with valid JSON when asked to do so, wrapped in triple backticks with the json tag like this: ```json. Never include markdown formatting in your JSON responses.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
+      headers,
+      body: JSON.stringify(body)
     });
 
+    console.log('Response Status:', response.status, response.statusText);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
+      let errorMessage = `HTTP error: ${response.status} ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        
+        if (errorData.error) {
+          // Handle specific error types
+          if (errorData.error.type === 'authentication_error' || 
+              errorData.error.message?.includes('auth') || 
+              errorData.error.message?.includes('key') ||
+              errorData.error.message?.includes('token')) {
+            errorMessage = `Authentication error: ${errorData.error.message}`;
+            console.error('Authentication error details:', {
+              type: errorData.error.type,
+              message: errorData.error.message,
+              param: errorData.error.param,
+              code: errorData.error.code
+            });
+          } else {
+            errorMessage = `API error: ${errorData.error.message || errorData.error}`;
+          }
+        }
+      } catch (jsonError) {
+        console.error('Failed to parse error response as JSON:', jsonError);
+        // If response is 401 or 403, it's likely an auth issue
+        if (response.status === 401 || response.status === 403) {
+          errorMessage = 'Authentication error: Invalid or expired API key';
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     
     // Log the response from the API
-    console.log('AI Response:', data.choices[0].message.content);
+    console.log('AI Response:', {
+      id: data.id,
+      model: data.model,
+      content: data.choices && data.choices[0] ? data.choices[0].message.content.substring(0, 100) + '...' : 'No content',
+      usage: data.usage
+    });
     
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling AI API:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     throw error;
   }
 }
@@ -609,6 +701,66 @@ export async function rebalancePortfolio(portfolioId: number): Promise<any> {
         'Review your risk profile periodically to ensure it aligns with your financial goals',
         'Set up automatic rebalancing to maintain your target allocation'
       ]
+    };
+  }
+}
+
+// Test function to diagnose API authentication issues
+export async function testAIConnection(): Promise<{
+  success: boolean;
+  message: string;
+  details?: any;
+}> {
+  try {
+    console.log('Testing AI API connection...');
+    
+    // Get the current settings
+    const settings = await getAISettings();
+    
+    // Log the settings (with partial API key for security)
+    console.log('Current AI Settings:', {
+      provider: settings.provider,
+      model: settings.model,
+      apiKey: settings.apiKey ? `${settings.apiKey.substring(0, 8)}...${settings.apiKey.substring(settings.apiKey.length - 4)}` : 'undefined',
+      hasApiKey: !!settings.apiKey
+    });
+    
+    // Make a simple test call to the API
+    const testPrompt = 'Respond with a simple "Hello, World!" message.';
+    
+    try {
+      const response = await callOpenRouterAPI(testPrompt);
+      return {
+        success: true,
+        message: 'Successfully connected to AI API',
+        details: {
+          responsePreview: response.substring(0, 100) + (response.length > 100 ? '...' : '')
+        }
+      };
+    } catch (apiError) {
+      // If the API call fails, return detailed error information
+      return {
+        success: false,
+        message: 'Failed to connect to AI API',
+        details: {
+          error: apiError instanceof Error ? apiError.message : String(apiError),
+          settings: {
+            provider: settings.provider,
+            model: settings.model,
+            hasApiKey: !!settings.apiKey,
+            apiKeyLength: settings.apiKey ? settings.apiKey.length : 0
+          }
+        }
+      };
+    }
+  } catch (error) {
+    // If there's an error getting settings or other setup issues
+    return {
+      success: false,
+      message: 'Error setting up AI connection test',
+      details: {
+        error: error instanceof Error ? error.message : String(error)
+      }
     };
   }
 }
