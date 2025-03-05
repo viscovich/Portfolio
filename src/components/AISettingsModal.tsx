@@ -123,15 +123,12 @@ const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) =>
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite</option>
                 <option value="google/gemini-pro">Google Gemini Pro</option>
-                <option value="anthropic/claude-3-opus">Anthropic Claude 3 Opus</option>
                 <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
                 <option value="openai/gpt-4o">OpenAI GPT-4o</option>
-                <option value="openai/gpt-4-turbo">OpenAI GPT-4 Turbo</option>
                 <option value="deepseek/deepseek-r1-distill-qwen-1.5b">Deepseek r1 distill 1.5b</option>
                 <option value="qwen/qwen2.5-vl-72b-instruct:free">Qwen 2.5-72b free</option>
-                <option value="meta-llama/llama-3-70b-instruct">Meta Llama 3 70B</option>
+                <option value="perplexity/r1-1776">Perplexity R1 1776</option>
               </select>
             </div>
 

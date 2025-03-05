@@ -3,7 +3,7 @@ import { AIPortfolioRequest, AIAnalysisRequest } from '../types';
 // Default settings
 const DEFAULT_SETTINGS = {
   provider: 'openrouter',
-  model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+  model: 'qwen/qwen2.5-vl-72b-instruct:free',
   apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || ''
 };
 
