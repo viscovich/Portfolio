@@ -26,8 +26,11 @@ export async function getAISettings(): Promise<{
     const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (storedSettings) {
       return JSON.parse(storedSettings);
+    } else {
+      // Save default settings to local storage
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
+      return DEFAULT_SETTINGS;
     }
-    return DEFAULT_SETTINGS;
   } catch (error) {
     console.error('Error getting AI settings:', error);
     return DEFAULT_SETTINGS;

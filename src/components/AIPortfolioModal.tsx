@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Settings, Sliders, TrendingUp, Sparkles } from 'lucide-react';
 import { createAIPortfolio } from '../services/portfolioService';
-import { getAIPortfolioSuggestion } from '../services/aiService';
+import { getAIPortfolioSuggestion, testAIConnection } from '../services/aiService';
 import AISettingsModal from './AISettingsModal';
 
 interface AIPortfolioModalProps {
@@ -72,6 +72,8 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
       setStep(2);
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
+      const testResult = await testAIConnection();
+      console.log('AI Connection Test Result:', testResult);
     } finally {
       setLoading(false);
     }
