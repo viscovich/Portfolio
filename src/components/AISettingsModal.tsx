@@ -10,8 +10,8 @@ interface AISettingsModalProps {
 const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) => {
   const [settings, setSettings] = useState({
     provider: 'openrouter',
-    model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
-    apiKey: ''
+    model: 'qwen/qwen2.5-vl-72b-instruct:free',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || ''
   });
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -129,6 +129,8 @@ const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClose }) =>
                 <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
                 <option value="openai/gpt-4o">OpenAI GPT-4o</option>
                 <option value="openai/gpt-4-turbo">OpenAI GPT-4 Turbo</option>
+                <option value="deepseek/deepseek-r1-distill-qwen-1.5b">Deepseek r1 distill 1.5b</option>
+                <option value="qwen/qwen2.5-vl-72b-instruct:free">Qwen 2.5-72b free</option>
                 <option value="meta-llama/llama-3-70b-instruct">Meta Llama 3 70B</option>
               </select>
             </div>

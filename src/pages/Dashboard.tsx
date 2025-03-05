@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import PortfolioList from '../components/PortfolioList';
-import MarketSentimentCard from '../components/MarketSentimentCard';
 import AIPortfolioModal from '../components/AIPortfolioModal';
 import { getPortfolios } from '../services/portfolioService';
-import { getMarketSentiment } from '../services/marketService';
-import type { Portfolio, MarketSentiment } from '../types';
+import type { Portfolio } from '../types';
 
 const Dashboard: React.FC = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [marketSentiment, setMarketSentiment] = useState<MarketSentiment | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
   
@@ -17,13 +14,8 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [portfoliosData, sentimentData] = await Promise.all([
-          getPortfolios(),
-          getMarketSentiment()
-        ]);
-        
+        const portfoliosData = await getPortfolios();
         setPortfolios(portfoliosData);
-        setMarketSentiment(sentimentData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -57,10 +49,6 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
-      
-      {marketSentiment && (
-        <MarketSentimentCard sentiment={marketSentiment} />
-      )}
       
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">

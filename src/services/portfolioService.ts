@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { getRandomChartData, calculatePortfolioMetrics } from '../lib/utils';
-import type { Portfolio, PortfolioAsset, Asset, AssetMetrics } from '../types';
+import type { Portfolio, PortfolioAsset, Asset, AssetMetrics, AIPortfolioRequest } from '../types';
 
 // Mock data for development
 const mockPortfolios: Portfolio[] = [
@@ -220,16 +220,24 @@ export async function createPortfolio(portfolio: Omit<Portfolio, 'id' | 'created
   }
 }
 
-export async function createAIPortfolio(request: any): Promise<Portfolio | null> {
+export async function createAIPortfolio(request: AIPortfolioRequest): Promise<Portfolio | null> {
   try {
-    // This would normally call an AI service
-    // For demo, we'll create a portfolio with random assets
+    // Create a description based on the optimization strategy
+    let riskDescription: string;
+    if (request.optimization_strategy === 'risk_level' && request.risk_level !== undefined) {
+      riskDescription = `DRC level ${request.risk_level} (on a scale of 1-5)`;
+    } else if (request.optimization_strategy === 'sharpe_ratio') {
+      riskDescription = 'optimized for maximum Sharpe ratio';
+    } else {
+      riskDescription = 'AI-recommended risk profile';
+    }
+    
     const newPortfolio: Portfolio = {
       id: mockPortfolios.length + 1,
       name: `AI Portfolio ${new Date().toLocaleDateString()}`,
       created_at: new Date().toISOString(),
       user_id: 'user-123',
-      description: `AI-generated portfolio based on ${request.stocks_percentage}% stocks, ${request.bonds_percentage}% bonds, ${request.alternatives_percentage}% alternatives with ${request.risk_level} risk`,
+      description: `AI-generated portfolio based on ${request.stocks_percentage}% stocks, ${request.bonds_percentage}% bonds, ${request.alternatives_percentage}% alternatives with ${riskDescription}`,
       is_ai_generated: true,
       assets: [],
       metrics: {
@@ -244,69 +252,139 @@ export async function createAIPortfolio(request: any): Promise<Portfolio | null>
       }
     };
     
-    // Create portfolio assets based on allocation request
+    // Create portfolio assets
     const assets: PortfolioAsset[] = [];
     
-    // Add stock ETFs
-    const stockAssets = mockAssets.filter(a => a.sector !== 'Bonds');
-    const stockAllocation = request.stocks_percentage;
-    let remainingStockAllocation = stockAllocation;
-    
-    for (let i = 0; i < 3 && i < stockAssets.length; i++) {
-      const asset = stockAssets[i];
-      const isLast = i === 2 || i === stockAssets.length - 1;
-      const allocation = isLast ? remainingStockAllocation : Math.floor(Math.random() * remainingStockAllocation * 0.7);
-      remainingStockAllocation -= allocation;
+    // If we have suggested assets from the AI, use those
+    if (request.suggested_assets && request.suggested_assets.length > 0) {
+      console.log('Using AI suggested assets for portfolio creation:', request.suggested_assets);
       
-      assets.push({
-        id: newPortfolio.id * 100 + i,
-        portfolio_id: newPortfolio.id,
-        asset_id: asset.id,
-        allocation,
-        asset: {
-          ...asset,
-          metrics: mockAssetMetrics[asset.id]
+      // Map the suggested assets to portfolio assets
+      request.suggested_assets.forEach((suggestedAsset, index) => {
+        // Find a matching asset in our mock assets by ticker
+        const matchingAsset = mockAssets.find(a => a.ticker === suggestedAsset.ticker);
+        
+        if (matchingAsset) {
+          assets.push({
+            id: newPortfolio.id * 100 + index,
+            portfolio_id: newPortfolio.id,
+            asset_id: matchingAsset.id,
+            allocation: suggestedAsset.allocation,
+            asset: {
+              ...matchingAsset,
+              metrics: mockAssetMetrics[matchingAsset.id]
+            }
+          });
+        } else {
+          // If we don't have the asset in our mock data, create a new one
+          const newAssetId = mockAssets.length + index + 1;
+          const newAsset: Asset = {
+            id: newAssetId,
+            ticker: suggestedAsset.ticker,
+            name: suggestedAsset.name,
+            type: suggestedAsset.type,
+            description: `${suggestedAsset.name} (${suggestedAsset.ticker})`,
+            sector: null,
+            region: null
+          };
+          
+          // Create metrics for the new asset
+          mockAssetMetrics[newAssetId] = {
+            id: newAssetId,
+            asset_id: newAssetId,
+            date: new Date().toISOString(),
+            price: parseFloat((Math.random() * 500 + 50).toFixed(2)),
+            return_1y: parseFloat((Math.random() * 30 - 5).toFixed(2)),
+            return_3y: parseFloat((Math.random() * 60 - 10).toFixed(2)),
+            volatility_3y: parseFloat((Math.random() * 20 + 5).toFixed(2)),
+            sharpe_3y: parseFloat((Math.random() * 3).toFixed(2)),
+            dividend_yield: parseFloat((Math.random() * 5).toFixed(2)),
+            expense_ratio: parseFloat((Math.random() * 1).toFixed(2)),
+            risk_score: parseFloat((Math.random() * 10).toFixed(2)),
+            chart_data: getRandomChartData(30, Math.random() > 0.3 ? 'up' : Math.random() > 0.5 ? 'down' : 'volatile')
+          };
+          
+          // Add the new asset to our mock assets
+          mockAssets.push(newAsset);
+          
+          // Add the asset to the portfolio
+          assets.push({
+            id: newPortfolio.id * 100 + index,
+            portfolio_id: newPortfolio.id,
+            asset_id: newAssetId,
+            allocation: suggestedAsset.allocation,
+            asset: {
+              ...newAsset,
+              metrics: mockAssetMetrics[newAssetId]
+            }
+          });
         }
       });
-    }
-    
-    // Add bond ETFs
-    const bondAssets = mockAssets.filter(a => a.sector === 'Bonds');
-    const bondAllocation = request.bonds_percentage;
-    let remainingBondAllocation = bondAllocation;
-    
-    for (let i = 0; i < 2 && i < bondAssets.length; i++) {
-      const asset = bondAssets[i];
-      const isLast = i === 1 || i === bondAssets.length - 1;
-      const allocation = isLast ? remainingBondAllocation : Math.floor(Math.random() * remainingBondAllocation * 0.7);
-      remainingBondAllocation -= allocation;
+    } else {
+      // Fallback to the original random asset allocation if no suggestions are provided
+      console.log('No AI suggestions provided, using random asset allocation');
       
-      assets.push({
-        id: newPortfolio.id * 100 + i + 3,
-        portfolio_id: newPortfolio.id,
-        asset_id: asset.id,
-        allocation,
-        asset: {
-          ...asset,
-          metrics: mockAssetMetrics[asset.id]
-        }
-      });
-    }
-    
-    // Add alternative assets (using some ETFs as alternatives for demo)
-    const altAllocation = request.alternatives_percentage;
-    const altAsset = mockAssets[Math.floor(Math.random() * mockAssets.length)];
-    
-    assets.push({
-      id: newPortfolio.id * 100 + 5,
-      portfolio_id: newPortfolio.id,
-      asset_id: altAsset.id,
-      allocation: altAllocation,
-      asset: {
-        ...altAsset,
-        metrics: mockAssetMetrics[altAsset.id]
+      // Add stock ETFs
+      const stockAssets = mockAssets.filter(a => a.sector !== 'Bonds');
+      const stockAllocation = request.stocks_percentage;
+      let remainingStockAllocation = stockAllocation;
+      
+      for (let i = 0; i < 3 && i < stockAssets.length; i++) {
+        const asset = stockAssets[i];
+        const isLast = i === 2 || i === stockAssets.length - 1;
+        const allocation = isLast ? remainingStockAllocation : Math.floor(Math.random() * remainingStockAllocation * 0.7);
+        remainingStockAllocation -= allocation;
+        
+        assets.push({
+          id: newPortfolio.id * 100 + i,
+          portfolio_id: newPortfolio.id,
+          asset_id: asset.id,
+          allocation,
+          asset: {
+            ...asset,
+            metrics: mockAssetMetrics[asset.id]
+          }
+        });
       }
-    });
+      
+      // Add bond ETFs
+      const bondAssets = mockAssets.filter(a => a.sector === 'Bonds');
+      const bondAllocation = request.bonds_percentage;
+      let remainingBondAllocation = bondAllocation;
+      
+      for (let i = 0; i < 2 && i < bondAssets.length; i++) {
+        const asset = bondAssets[i];
+        const isLast = i === 1 || i === bondAssets.length - 1;
+        const allocation = isLast ? remainingBondAllocation : Math.floor(Math.random() * remainingBondAllocation * 0.7);
+        remainingBondAllocation -= allocation;
+        
+        assets.push({
+          id: newPortfolio.id * 100 + i + 3,
+          portfolio_id: newPortfolio.id,
+          asset_id: asset.id,
+          allocation,
+          asset: {
+            ...asset,
+            metrics: mockAssetMetrics[asset.id]
+          }
+        });
+      }
+      
+      // Add alternative assets (using some ETFs as alternatives for demo)
+      const altAllocation = request.alternatives_percentage;
+      const altAsset = mockAssets[Math.floor(Math.random() * mockAssets.length)];
+      
+      assets.push({
+        id: newPortfolio.id * 100 + 5,
+        portfolio_id: newPortfolio.id,
+        asset_id: altAsset.id,
+        allocation: altAllocation,
+        asset: {
+          ...altAsset,
+          metrics: mockAssetMetrics[altAsset.id]
+        }
+      });
+    }
     
     newPortfolio.assets = assets;
     newPortfolio.metrics = calculatePortfolioMetrics(assets);

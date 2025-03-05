@@ -71,10 +71,28 @@ export interface AIPortfolioRequest {
   stocks_percentage: number;
   bonds_percentage: number;
   alternatives_percentage: number;
-  risk_level: 'low' | 'medium' | 'high';
+  optimization_strategy: 'risk_level' | 'sharpe_ratio' | 'ai_recommended';
+  risk_level?: number; // Integer from 1 to 5, only used when optimization_strategy is 'risk_level'
+  suggested_assets?: Array<{
+    ticker: string;
+    name: string;
+    allocation: number;
+    type: string;
+  }>; // The suggested assets from the AI suggestion
 }
 
 export interface AIAnalysisRequest {
   portfolio_id: number;
-  analysis_type: 'performance' | 'risk' | 'allocation' | 'rebalance';
+  analysis_type: 'performance' | 'risk' | 'allocation';
+}
+
+export interface MarketNews {
+  id: string;
+  title: string;
+  source: string;
+  url: string;
+  date: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  description?: string;
+  imageUrl?: string;
 }

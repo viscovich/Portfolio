@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings } from 'lucide-react';
+import { X, Settings, Sliders, TrendingUp, Sparkles } from 'lucide-react';
 import { createAIPortfolio } from '../services/portfolioService';
 import { getAIPortfolioSuggestion } from '../services/aiService';
 import AISettingsModal from './AISettingsModal';
@@ -18,7 +18,8 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
     bonds: 30,
     alternatives: 10
   });
-  const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('medium');
+  const [optimizationStrategy, setOptimizationStrategy] = useState<'risk_level' | 'sharpe_ratio' | 'ai_recommended'>('risk_level');
+  const [riskLevel, setRiskLevel] = useState<number>(3); // Default to middle risk level (3 out of 5)
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   
@@ -63,7 +64,8 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
         stocks_percentage: allocation.stocks,
         bonds_percentage: allocation.bonds,
         alternatives_percentage: allocation.alternatives,
-        risk_level: riskLevel
+        optimization_strategy: optimizationStrategy,
+        risk_level: optimizationStrategy === 'risk_level' ? riskLevel : undefined
       });
       
       setAiSuggestion(suggestion);
@@ -82,7 +84,9 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
         stocks_percentage: allocation.stocks,
         bonds_percentage: allocation.bonds,
         alternatives_percentage: allocation.alternatives,
-        risk_level: riskLevel
+        optimization_strategy: optimizationStrategy,
+        risk_level: optimizationStrategy === 'risk_level' ? riskLevel : undefined,
+        suggested_assets: aiSuggestion?.suggestions // Pass the AI suggestions to the portfolio creation function
       });
       
       onSuccess();
@@ -181,37 +185,97 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
               </div>
               
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Risk Level</h3>
-                <div className="flex space-x-4">
-                  <button
-                    className={`px-4 py-2 rounded-md ${riskLevel === 'low' ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-300'}`}
-                    onClick={() => setRiskLevel('low')}
+                <h3 className="text-lg font-medium mb-3">Optimization Strategy</h3>
+                <div className="space-y-3">
+                  <div 
+                    className={`flex items-center p-3 rounded-md cursor-pointer ${optimizationStrategy === 'risk_level' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}`}
+                    onClick={() => setOptimizationStrategy('risk_level')}
                   >
-                    Low
-                  </button>
-                  <button
-                    className={`px-4 py-2 rounded-md ${riskLevel === 'medium' ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-300'}`}
-                    onClick={() => setRiskLevel('medium')}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-3 ${optimizationStrategy === 'risk_level' ? 'border-blue-500' : 'border-gray-400'}`}>
+                      {optimizationStrategy === 'risk_level' && <div className="w-3 h-3 rounded-full bg-blue-500"></div>}
+                    </div>
+                    <Sliders className="h-5 w-5 text-gray-600 mr-2" />
+                    <div>
+                      <div className="font-medium">Specify Risk Level (DRC)</div>
+                      <div className="text-sm text-gray-500">Choose your desired risk level from 1 (lowest) to 5 (highest)</div>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`flex items-center p-3 rounded-md cursor-pointer ${optimizationStrategy === 'sharpe_ratio' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}`}
+                    onClick={() => setOptimizationStrategy('sharpe_ratio')}
                   >
-                    Medium
-                  </button>
-                  <button
-                    className={`px-4 py-2 rounded-md ${riskLevel === 'high' ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 text-gray-700 border border-gray-300'}`}
-                    onClick={() => setRiskLevel('high')}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-3 ${optimizationStrategy === 'sharpe_ratio' ? 'border-blue-500' : 'border-gray-400'}`}>
+                      {optimizationStrategy === 'sharpe_ratio' && <div className="w-3 h-3 rounded-full bg-blue-500"></div>}
+                    </div>
+                    <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
+                    <div>
+                      <div className="font-medium">Maximize Sharpe Ratio</div>
+                      <div className="text-sm text-gray-500">Optimize for the best risk-adjusted returns</div>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`flex items-center p-3 rounded-md cursor-pointer ${optimizationStrategy === 'ai_recommended' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}`}
+                    onClick={() => setOptimizationStrategy('ai_recommended')}
                   >
-                    High
-                  </button>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-3 ${optimizationStrategy === 'ai_recommended' ? 'border-blue-500' : 'border-gray-400'}`}>
+                      {optimizationStrategy === 'ai_recommended' && <div className="w-3 h-3 rounded-full bg-blue-500"></div>}
+                    </div>
+                    <Sparkles className="h-5 w-5 text-gray-600 mr-2" />
+                    <div>
+                      <div className="font-medium">AI Recommended</div>
+                      <div className="text-sm text-gray-500">Let AI determine the optimal strategy based on market conditions</div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex justify-end">
-                <button
-                  onClick={handleGetSuggestions}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {loading ? 'Generating Suggestions...' : 'Get AI Suggestions'}
-                </button>
+              {optimizationStrategy === 'risk_level' && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-3">Risk Level (DRC)</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between mb-1">
+                      <label className="text-sm font-medium text-gray-700">DRC Level: {riskLevel}</label>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="1"
+                      value={riskLevel}
+                      onChange={(e) => setRiskLevel(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>1 (Conservative)</span>
+                      <span>2</span>
+                      <span>3 (Balanced)</span>
+                      <span>4</span>
+                      <span>5 (Aggressive)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Always show a message about the next step */}
+              <div className="mt-6 mb-4 text-sm text-gray-600">
+                Click "Get AI Suggestions" to proceed with your selected optimization strategy
+                {optimizationStrategy === 'risk_level' ? ` and risk level of ${riskLevel}` : ''}.
+              </div>
+              
+              {/* Fixed footer with buttons */}
+              <div className="mt-8 border-t pt-4">
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleGetSuggestions}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    data-testid="get-ai-suggestions-button"
+                  >
+                    {loading ? 'Generating Suggestions...' : 'Get AI Suggestions'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -229,7 +293,13 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Risk Assessment:</span>
-                    <span className="text-sm font-medium text-blue-700">{riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)}</span>
+                    <span className="text-sm font-medium text-blue-700">
+                      {optimizationStrategy === 'risk_level' 
+                        ? `DRC Level ${riskLevel}` 
+                        : optimizationStrategy === 'sharpe_ratio' 
+                          ? 'Optimized for Sharpe Ratio' 
+                          : 'AI Recommended'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -276,20 +346,23 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
                 </div>
               </div>
               
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleCreatePortfolio}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {loading ? 'Creating Portfolio...' : 'Create Portfolio'}
-                </button>
+              {/* Fixed footer with buttons */}
+              <div className="mt-8 border-t pt-4">
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCreatePortfolio}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  >
+                    {loading ? 'Creating Portfolio...' : 'Create Portfolio'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

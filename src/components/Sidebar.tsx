@@ -11,8 +11,7 @@ const Sidebar: React.FC = () => {
   
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <Home className="h-5 w-5" /> },
-    { name: 'Market Sentiment', path: '/market-sentiment', icon: <BarChart2 className="h-5 w-5" /> },
-    { name: 'Assets', path: '/assets', icon: <Database className="h-5 w-5" /> }
+    { name: 'Market Sentiment', path: '/market-sentiment', icon: <BarChart2 className="h-5 w-5" /> }
   ];
   
   return (

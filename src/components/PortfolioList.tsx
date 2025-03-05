@@ -21,28 +21,28 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ portfolios }) => {
               Asset #
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Rend. 3Y ↓
+              Rend. 3Y
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Vol. 3Y ↑
+              Vol. 3Y
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Sharpe 3Y ↓
+              Sharpe 3Y
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Trend 3Y
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              DR 1Y ↑
+              DR 1Y
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              DR 6M ↓
+              DR 6M
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Prob. ↑
+              Prob.
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              DRC ↓
+              DRC
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
@@ -100,7 +100,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ portfolios }) => {
                 {formatPercentage(60 + Math.random() * 30)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {(Math.random() * 7 + 1).toFixed(2)}
+              {Math.floor(Math.random() * 5) + 1}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">

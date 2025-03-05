@@ -333,13 +333,24 @@ function parseAIResponse(response: string): any {
 // Get AI portfolio suggestion
 export async function getAIPortfolioSuggestion(request: AIPortfolioRequest): Promise<any> {
   try {
+    // Determine risk level description based on optimization strategy
+    let riskLevelDescription: string;
+    if (request.optimization_strategy === 'risk_level' && request.risk_level !== undefined) {
+      riskLevelDescription = `DRC Level ${request.risk_level} (on a scale of 1-5, where 1 is most conservative and 5 is most aggressive)`;
+    } else if (request.optimization_strategy === 'sharpe_ratio') {
+      riskLevelDescription = 'Optimized for maximum Sharpe ratio (best risk-adjusted returns)';
+    } else {
+      riskLevelDescription = 'AI recommended optimal risk level based on market conditions';
+    }
+
     // First try to use the AI API
     const prompt = `
       Create a portfolio allocation based on the following parameters:
       - Stocks allocation: ${request.stocks_percentage}%
       - Bonds allocation: ${request.bonds_percentage}%
       - Alternatives allocation: ${request.alternatives_percentage}%
-      - Risk level: ${request.risk_level}
+      - Optimization strategy: ${request.optimization_strategy}
+      ${request.optimization_strategy === 'risk_level' && request.risk_level !== undefined ? `- Risk level (DRC): ${request.risk_level} (on a scale of 1-5)` : ''}
       
       Please provide a detailed response in JSON format with the following structure:
       {
@@ -365,12 +376,32 @@ export async function getAIPortfolioSuggestion(request: AIPortfolioRequest): Pro
     console.log('Falling back to mock data for portfolio suggestion');
     
     // Mock response based on request parameters
-    const { stocks_percentage, bonds_percentage, alternatives_percentage, risk_level } = request;
+    const { stocks_percentage, bonds_percentage, alternatives_percentage, optimization_strategy, risk_level } = request;
     
-    // Generate suggestions based on risk level
+    // Determine effective risk level for mock data
+    let effectiveRiskLevel: 'low' | 'medium' | 'high';
+    
+    if (optimization_strategy === 'risk_level' && risk_level !== undefined) {
+      // Map numeric risk level (1-5) to low/medium/high
+      if (risk_level <= 2) {
+        effectiveRiskLevel = 'low';
+      } else if (risk_level <= 4) {
+        effectiveRiskLevel = 'medium';
+      } else {
+        effectiveRiskLevel = 'high';
+      }
+    } else if (optimization_strategy === 'sharpe_ratio') {
+      // Sharpe ratio optimization typically results in a balanced portfolio
+      effectiveRiskLevel = 'medium';
+    } else {
+      // AI recommended - for mock data, we'll use a medium risk level
+      effectiveRiskLevel = 'medium';
+    }
+    
+    // Generate suggestions based on effective risk level
     let suggestions;
     
-    if (risk_level === 'low') {
+    if (effectiveRiskLevel === 'low') {
       suggestions = [
         { ticker: 'VTI', name: 'Vanguard Total Stock Market ETF', allocation: stocks_percentage * 0.4, type: 'ETF' },
         { ticker: 'VEA', name: 'Vanguard FTSE Developed Markets ETF', allocation: stocks_percentage * 0.3, type: 'ETF' },
@@ -380,7 +411,7 @@ export async function getAIPortfolioSuggestion(request: AIPortfolioRequest): Pro
         { ticker: 'GLD', name: 'SPDR Gold Shares', allocation: alternatives_percentage * 0.5, type: 'ETF' },
         { ticker: 'VNQ', name: 'Vanguard Real Estate ETF', allocation: alternatives_percentage * 0.5, type: 'ETF' }
       ];
-    } else if (risk_level === 'medium') {
+    } else if (effectiveRiskLevel === 'medium') {
       suggestions = [
         { ticker: 'VTI', name: 'Vanguard Total Stock Market ETF', allocation: stocks_percentage * 0.5, type: 'ETF' },
         { ticker: 'VGT', name: 'Vanguard Information Technology ETF', allocation: stocks_percentage * 0.2, type: 'ETF' },
@@ -405,11 +436,24 @@ export async function getAIPortfolioSuggestion(request: AIPortfolioRequest): Pro
       ];
     }
     
+    // Create risk assessment description based on optimization strategy
+    let riskAssessment: string;
+    if (optimization_strategy === 'risk_level' && risk_level !== undefined) {
+      riskAssessment = `This portfolio has a DRC level of ${risk_level} (on a scale of 1-5), with a volatility level that aligns with your specified risk tolerance.`;
+    } else if (optimization_strategy === 'sharpe_ratio') {
+      riskAssessment = 'This portfolio is optimized for the best risk-adjusted returns (Sharpe ratio), balancing potential gains with an appropriate level of risk.';
+    } else {
+      riskAssessment = 'This portfolio has an AI-recommended risk profile based on current market conditions and your asset allocation preferences.';
+    }
+    
+    // Expected return based on effective risk level
+    const expectedReturn = effectiveRiskLevel === 'low' ? '5-7%' : effectiveRiskLevel === 'medium' ? '7-9%' : '9-12%';
+    
     return {
       suggestions,
-      analysis: `Based on your allocation of ${stocks_percentage}% stocks, ${bonds_percentage}% bonds, and ${alternatives_percentage}% alternatives with a ${risk_level} risk profile, I've created a diversified portfolio. This allocation balances growth potential with risk management appropriate for your preferences.`,
-      expected_return: risk_level === 'low' ? '5-7%' : risk_level === 'medium' ? '7-9%' : '9-12%',
-      risk_assessment: `This portfolio has a ${risk_level} risk profile with a volatility level that aligns with your risk tolerance.`
+      analysis: `Based on your allocation of ${stocks_percentage}% stocks, ${bonds_percentage}% bonds, and ${alternatives_percentage}% alternatives with ${optimization_strategy === 'risk_level' ? `a DRC level of ${risk_level}` : optimization_strategy === 'sharpe_ratio' ? 'Sharpe ratio optimization' : 'AI-recommended risk optimization'}, I've created a diversified portfolio. This allocation balances growth potential with risk management appropriate for your preferences.`,
+      expected_return: expectedReturn,
+      risk_assessment: riskAssessment
     };
   }
 }
@@ -640,7 +684,21 @@ export async function getMarketSentimentAnalysis(): Promise<any> {
 }
 
 // Function to rebalance a portfolio using AI
-export async function rebalancePortfolio(portfolioId: number): Promise<any> {
+export async function rebalancePortfolio(
+  portfolioId: number,
+  optimizationStrategy: 'risk_level' | 'sharpe_ratio' | 'ai_recommended' = 'ai_recommended',
+  riskLevel?: number
+): Promise<{
+  summary: string;
+  current_vs_target: Array<{
+    ticker: string;
+    name: string;
+    current: number;
+    target: number;
+    action: string;
+  }>;
+  recommendations: string[];
+}> {
   try {
     // First fetch the portfolio data
     const { getPortfolioById } = await import('../services/portfolioService');
@@ -655,14 +713,24 @@ export async function rebalancePortfolio(portfolioId: number): Promise<any> {
       `${asset.asset.ticker} (${asset.asset.name}): ${asset.allocation}%`
     ).join('\n') || 'No assets';
     
+    // Determine optimization strategy description
+    let optimizationDescription: string;
+    if (optimizationStrategy === 'risk_level' && riskLevel !== undefined) {
+      optimizationDescription = `with a target DRC level of ${riskLevel} (on a scale of 1-5, where 1 is most conservative and 5 is most aggressive)`;
+    } else if (optimizationStrategy === 'sharpe_ratio') {
+      optimizationDescription = 'optimized for maximum Sharpe ratio (best risk-adjusted returns)';
+    } else {
+      optimizationDescription = 'using AI-recommended risk optimization based on current market conditions';
+    }
+    
     // First try to use the AI API
     const prompt = `
-      Rebalance a portfolio with ID ${portfolioId}.
+      Rebalance a portfolio with ID ${portfolioId} ${optimizationDescription}.
       
       Current portfolio composition:
       ${portfolioAssetsString}
       
-      Please analyze this portfolio and suggest a rebalanced allocation based on current market conditions, 
+      Please analyze this portfolio and suggest a rebalanced allocation based on the specified optimization strategy,
       diversification principles, and risk management. Keep the same assets but adjust their allocations.
       
       Please provide a detailed response in JSON format with the following structure:

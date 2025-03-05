@@ -7,6 +7,7 @@ import { rebalancePortfolio } from '../services/aiService';
 import PortfolioChart from '../components/PortfolioChart';
 import AIAnalysisModal from '../components/AIAnalysisModal';
 import AISettingsModal from '../components/AISettingsModal';
+import RebalanceModal from '../components/RebalanceModal';
 import type { Portfolio } from '../types';
 
 const PortfolioDetail: React.FC = () => {
@@ -16,6 +17,7 @@ const PortfolioDetail: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const [isRebalanceModalOpen, setIsRebalanceModalOpen] = useState<boolean>(false);
   const [isRebalancing, setIsRebalancing] = useState<boolean>(false);
   const [rebalanceResult, setRebalanceResult] = useState<any>(null);
   
@@ -82,26 +84,11 @@ const PortfolioDetail: React.FC = () => {
             AI Analysis
           </button>
           <button 
-            onClick={async () => {
-              if (!id) return;
-              setIsRebalancing(true);
-              try {
-                const result = await rebalancePortfolio(parseInt(id));
-                setRebalanceResult(result);
-                // Refresh portfolio data after rebalancing
-                const updatedPortfolio = await getPortfolioById(parseInt(id));
-                setPortfolio(updatedPortfolio);
-              } catch (error) {
-                console.error('Error rebalancing portfolio:', error);
-              } finally {
-                setIsRebalancing(false);
-              }
-            }}
-            disabled={isRebalancing}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center disabled:opacity-50"
+            onClick={() => setIsRebalanceModalOpen(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center"
           >
-            <RefreshCw className={`h-5 w-5 mr-1 ${isRebalancing ? 'animate-spin' : ''}`} />
-            {isRebalancing ? 'Rebalancing...' : 'Rebalance with AI'}
+            <RefreshCw className="h-5 w-5 mr-1" />
+            Rebalance with AI
           </button>
           <button 
             onClick={() => setIsSettingsModalOpen(true)}
@@ -140,13 +127,6 @@ const PortfolioDetail: React.FC = () => {
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md">
-                <div className="text-sm text-gray-500 mb-1">Volatility 3Y</div>
-                <div className="text-xl font-semibold text-gray-900">
-                  {formatPercentage(portfolio.metrics?.volatility_3y || 0)}
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-md">
                 <div className="text-sm text-gray-500 mb-1">Sharpe Ratio</div>
                 <div className="text-xl font-semibold text-gray-900">
                   {portfolio.metrics?.sharpe_3y.toFixed(2) || '0.00'}
@@ -154,16 +134,9 @@ const PortfolioDetail: React.FC = () => {
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md">
-                <div className="text-sm text-gray-500 mb-1">Dividend Yield</div>
+                <div className="text-sm text-gray-500 mb-1">DRC</div>
                 <div className="text-xl font-semibold text-gray-900">
-                  {formatPercentage(portfolio.metrics?.dividend_yield || 0)}
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-md">
-                <div className="text-sm text-gray-500 mb-1">Expense Ratio</div>
-                <div className="text-xl font-semibold text-gray-900">
-                  {formatPercentage(portfolio.metrics?.expense_ratio || 0)}
+                  {Math.min(Math.max(Math.round(portfolio.metrics?.risk_score || 0), 1), 5)}
                 </div>
               </div>
             </div>
@@ -261,127 +234,7 @@ const PortfolioDetail: React.FC = () => {
         </div>
       </div>
       
-      {/* Display rebalance results if available */}
-      {rebalanceResult && (
-        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Portfolio Rebalanced</h3>
-          <p className="text-gray-700 mb-4">{rebalanceResult.summary}</p>
-          
-          <div className="overflow-x-auto mb-4">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Asset
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Previous
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    New Target
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {rebalanceResult.current_vs_target.map((item: any, index: number) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{item.ticker}</div>
-                      <div className="text-sm text-gray-500">{item.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.current}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.target}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        item.action.includes('Reduce') ? 'bg-red-100 text-red-800' :
-                        item.action.includes('Increase') ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.action}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="mt-4">
-            <h4 className="text-md font-medium text-gray-900 mb-2">Recommendations</h4>
-            <ul className="space-y-1 list-disc list-inside text-gray-700">
-              {rebalanceResult.recommendations.map((recommendation: string, index: number) => (
-                <li key={index}>{recommendation}</li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="mt-4 flex justify-end space-x-3">
-            <button 
-              onClick={async () => {
-                if (!id || !portfolio || !rebalanceResult) return;
-                
-                try {
-                  setIsLoading(true);
-                  
-                  // Create a deep copy of the portfolio to modify
-                  const updatedPortfolio = JSON.parse(JSON.stringify(portfolio));
-                  
-                  // Update the portfolio assets with the new allocations
-                  if (updatedPortfolio.assets && updatedPortfolio.assets.length > 0) {
-                    rebalanceResult.current_vs_target.forEach((targetAsset: { ticker: string; target: number }) => {
-                      // Find the matching asset in the portfolio
-                      const portfolioAsset = updatedPortfolio.assets.find(
-                        (asset: { asset: { ticker: string } }) => asset.asset.ticker === targetAsset.ticker
-                      );
-                      
-                      // Update the allocation if the asset is found
-                      if (portfolioAsset) {
-                        portfolioAsset.allocation = targetAsset.target;
-                      }
-                    });
-                  }
-                  
-                  // In a real app, you would call an API endpoint to save the changes
-                  // For example: await updatePortfolio(updatedPortfolio);
-                  
-                  // Wait a moment to simulate the API call
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  
-                  // Update the portfolio state with the modified portfolio
-                  setPortfolio(updatedPortfolio);
-                  
-                  // Clear the rebalance result
-                  setRebalanceResult(null);
-                  
-                  // Show success message
-                  alert('Portfolio successfully rebalanced!');
-                } catch (error) {
-                  console.error('Error applying rebalance:', error);
-                  alert('Failed to apply rebalance changes.');
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              Accept Changes
-            </button>
-            <button 
-              onClick={() => setRebalanceResult(null)}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
+      {/* The Portfolio Rebalanced section has been removed as all rebalancing now happens in the modal */}
       
       <AIAnalysisModal 
         isOpen={isAIModalOpen} 
@@ -392,6 +245,65 @@ const PortfolioDetail: React.FC = () => {
       <AISettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+      
+      <RebalanceModal
+        isOpen={isRebalanceModalOpen}
+        onClose={() => {
+          setIsRebalanceModalOpen(false);
+          // Reset rebalance result when closing the modal
+          setRebalanceResult(null);
+        }}
+        isLoading={isRebalancing}
+        rebalanceResult={rebalanceResult}
+        portfolioAssets={portfolio?.assets || []}
+        onRebalance={async (optimizationStrategy, riskLevel) => {
+          try {
+            setIsRebalancing(true);
+            console.log('onRebalance called with:', { optimizationStrategy, riskLevel });
+            
+            if (id) {
+              const result = await rebalancePortfolio(
+                parseInt(id),
+                optimizationStrategy,
+                riskLevel
+              );
+              setRebalanceResult(result);
+            }
+          } catch (error) {
+            console.error('Error rebalancing portfolio:', error);
+          } finally {
+            setIsRebalancing(false);
+          }
+        }}
+        onApplyChanges={(suggestions) => {
+          if (!portfolio || !portfolio.assets) return;
+          
+          console.log('Applying changes to portfolio:', suggestions);
+          
+          // Create a copy of the portfolio to update
+          const updatedPortfolio = { ...portfolio };
+          
+          // Update the allocations for each asset
+          updatedPortfolio.assets = portfolio.assets.map(asset => {
+            // Find the matching suggestion
+            const suggestion = suggestions.find(s => s.ticker === asset.asset.ticker);
+            
+            if (suggestion) {
+              // Update the allocation
+              return {
+                ...asset,
+                allocation: suggestion.allocation
+              };
+            }
+            
+            // No change for this asset
+            return asset;
+          });
+          
+          // Update the portfolio state
+          setPortfolio(updatedPortfolio);
+        }}
       />
     </div>
   );
