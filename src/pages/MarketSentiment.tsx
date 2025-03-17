@@ -4,11 +4,11 @@ import { getMarketSentimentAnalysis } from '../services/aiService';
 import { formatDateShort } from '../lib/utils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
-import type { MarketSentiment } from '../types';
+import type { MarketSentiment, DetailedMarketSentiment } from '../types';
 
 const MarketSentimentPage: React.FC = () => {
   const [sentimentHistory, setSentimentHistory] = useState<MarketSentiment[]>([]);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<DetailedMarketSentiment | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedSentiment, setSelectedSentiment] = useState<{
     date: string;
@@ -28,10 +28,12 @@ const MarketSentimentPage: React.FC = () => {
         // Ensure consistency between sentiment history and AI analysis for today's date
         const today = new Date().toISOString().split('T')[0];
         const updatedHistoryData = historyData.map(item => {
-          if (item.date.split('T')[0] === today) {
+          if (item.date.split('T')[0] === today && analysisData?.current_sentiment?.market_sentiment?.score) {
+            // Convert score from 0-100 to 0-1 scale
+            const sentimentScore = analysisData.current_sentiment.market_sentiment.score / 100;
             return {
               ...item,
-              sentiment_score: analysisData.sentiment_score
+              sentiment_score: sentimentScore
             };
           }
           return item;
@@ -117,31 +119,119 @@ const MarketSentimentPage: React.FC = () => {
           </div>
           
           <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Investment Implications</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Market Outlook</h2>
             
-            <div className="space-y-3">
-              {aiAnalysis.investment_implications.map((implication: string, index: number) => (
-                <div key={index} className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <p className="ml-2 text-sm text-gray-600">{implication}</p>
+            {aiAnalysis && (
+              <>
+                <h3 className="text-md font-medium text-gray-900 mb-3">Key Markets</h3>
+                <div className="space-y-3 mb-6">
+                  {/* Equity Markets */}
+                  {aiAnalysis.market_outlook.equity_markets && Object.entries(aiAnalysis.market_outlook.equity_markets).map(([key, market]) => (
+                    <div key={`equity-${key}`} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">{key === 'USA' ? 'US Stocks' : 
+                                                              key === 'EU' ? 'European Stocks' : 
+                                                              key === 'Italy' ? 'Italian Stocks' : 
+                                                              'Emerging Markets'} ({market.index})</span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                        market.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                        market.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {market.sentiment}
+                      </span>
+                    </div>
+                  ))}
+                  
+                  {/* Bond Markets - Show just a few key ones */}
+                  {aiAnalysis.market_outlook.bond_markets && (
+                    <>
+                      <div key="bond-US" className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">US Bonds ({aiAnalysis.market_outlook.bond_markets.USA.index})</span>
+                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                          aiAnalysis.market_outlook.bond_markets.USA.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                          aiAnalysis.market_outlook.bond_markets.USA.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {aiAnalysis.market_outlook.bond_markets.USA.sentiment}
+                        </span>
+                      </div>
+                      <div key="bond-EU" className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">EU Bonds ({aiAnalysis.market_outlook.bond_markets.EU.index})</span>
+                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                          aiAnalysis.market_outlook.bond_markets.EU.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                          aiAnalysis.market_outlook.bond_markets.EU.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {aiAnalysis.market_outlook.bond_markets.EU.sentiment}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Commodities - Show just gold and oil */}
+                  {aiAnalysis.market_outlook.commodities && (
+                    <>
+                      {(() => {
+                        // Helper function to get commodity data regardless of language
+                        const goldData = aiAnalysis.market_outlook.commodities.gold || 
+                                     aiAnalysis.market_outlook.commodities.oro;
+                        
+                        const oilData = aiAnalysis.market_outlook.commodities.oil || 
+                                    aiAnalysis.market_outlook.commodities.petrolio;
+                        
+                        return (
+                          <>
+                            {goldData && (
+                              <div key="commodity-gold" className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">
+                                  Gold ({goldData.index})
+                                </span>
+                                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                                  goldData.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                                  goldData.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {goldData.sentiment}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {oilData && (
+                              <div key="commodity-oil" className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">
+                                  Oil ({oilData.index})
+                                </span>
+                                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                                  oilData.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                                  oilData.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {oilData.sentiment}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-            
-            <h3 className="text-md font-medium text-gray-900 mt-6 mb-3">Sector Outlook</h3>
-            <div className="space-y-3">
-              {aiAnalysis.sector_outlook.map((sector: any, index: number) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">{sector.sector}</span>
-                  <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                    sector.outlook === 'Positive' ? 'bg-green-100 text-green-800' : 
-                    sector.outlook === 'Negative' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {sector.outlook}
-                  </span>
+                
+                <h3 className="text-md font-medium text-gray-900 mb-3">Sector Outlook</h3>
+                <div className="space-y-3">
+                  {/* List top sectors */}
+                  {aiAnalysis.sector_outlook && Object.entries(aiAnalysis.sector_outlook)
+                    .slice(0, 6) // Show top 6 sectors
+                    .map(([key, sector]) => (
+                      <div key={`sector-${key}`} className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">{key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}</span>
+                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                          sector.sentiment.includes('Positiv') ? 'bg-green-100 text-green-800' : 
+                          sector.sentiment.includes('Negativ') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {sector.sentiment}
+                        </span>
+                      </div>
+                    ))
+                  }
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         </div>
         
@@ -165,16 +255,18 @@ const MarketSentimentPage: React.FC = () => {
                 ) : (
                   <Minus className="h-10 w-10 text-yellow-500" />
                 )
-              ) : aiAnalysis?.sentiment_score > 0.6 ? (
+              ) : (aiAnalysis?.current_sentiment?.market_sentiment?.score ?? 0) > 60 ? (
                 <TrendingUp className="h-10 w-10 text-green-500" />
-              ) : aiAnalysis?.sentiment_score < 0.4 ? (
+              ) : (aiAnalysis?.current_sentiment?.market_sentiment?.score ?? 0) < 40 ? (
                 <TrendingDown className="h-10 w-10 text-red-500" />
               ) : (
                 <Minus className="h-10 w-10 text-yellow-500" />
               )}
               <div className="ml-4">
                 {selectedSentiment?.hasDetailedData && aiAnalysis ? (
-                  <div className="text-xl font-semibold text-gray-900">{aiAnalysis.overall_sentiment}</div>
+                  <div className="text-xl font-semibold text-gray-900">
+                    {aiAnalysis.current_sentiment.market_sentiment.analysis.split('.')[0]}
+                  </div>
                 ) : (
                   <div className="text-xl font-semibold text-gray-900">
                     {selectedSentiment && selectedSentiment.score > 0.7 ? 'Very Positive' :
@@ -184,8 +276,9 @@ const MarketSentimentPage: React.FC = () => {
                   </div>
                 )}
                 <div className="text-sm text-gray-500">
-                  Score: {selectedSentiment ? (selectedSentiment.score * 100).toFixed(0) : 
-                          aiAnalysis ? (aiAnalysis.sentiment_score * 100).toFixed(0) : 0}/100
+                  Score: {selectedSentiment 
+                          ? (selectedSentiment.score * 100).toFixed(0) 
+                          : (aiAnalysis?.current_sentiment?.market_sentiment?.score ?? 0)}/100
                 </div>
               </div>
             </div>
@@ -193,18 +286,65 @@ const MarketSentimentPage: React.FC = () => {
             {selectedSentiment?.hasDetailedData && aiAnalysis && (
               <div className="space-y-4 mt-6">
                 <h3 className="text-md font-medium text-gray-900">Key Factors</h3>
-                {aiAnalysis.key_factors.map((factor: any, index: number) => (
-                  <div key={index} className="flex items-start">
-                    <div className={`mt-1 h-3 w-3 rounded-full ${
-                      factor.sentiment === 'Positive' ? 'bg-green-500' : 
-                      factor.sentiment === 'Negative' ? 'bg-red-500' : 'bg-yellow-500'
-                    }`}></div>
-                    <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900">{factor.factor}</div>
-                      <div className="text-xs text-gray-500">{factor.details}</div>
-                    </div>
+                
+                {/* Economic Data */}
+                <div className="flex items-start">
+                  <div className={`mt-1 h-3 w-3 rounded-full ${
+                    aiAnalysis.key_factors.economic_data.USA.sentiment.includes('Positiv') ? 'bg-green-500' : 
+                    aiAnalysis.key_factors.economic_data.USA.sentiment.includes('Negativ') ? 'bg-red-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">US Economy</div>
+                    <div className="text-xs text-gray-500">{aiAnalysis.key_factors.economic_data.USA.analysis}</div>
                   </div>
-                ))}
+                </div>
+                
+                <div className="flex items-start">
+                  <div className={`mt-1 h-3 w-3 rounded-full ${
+                    aiAnalysis.key_factors.economic_data.EU.sentiment.includes('Positiv') ? 'bg-green-500' : 
+                    aiAnalysis.key_factors.economic_data.EU.sentiment.includes('Negativ') ? 'bg-red-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">EU Economy</div>
+                    <div className="text-xs text-gray-500">{aiAnalysis.key_factors.economic_data.EU.analysis}</div>
+                  </div>
+                </div>
+                
+                {/* Central Bank Policy */}
+                <div className="flex items-start">
+                  <div className={`mt-1 h-3 w-3 rounded-full ${
+                    aiAnalysis.key_factors.central_bank_policy.USA.sentiment.includes('Positiv') ? 'bg-green-500' : 
+                    aiAnalysis.key_factors.central_bank_policy.USA.sentiment.includes('Negativ') ? 'bg-red-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">Fed Policy</div>
+                    <div className="text-xs text-gray-500">{aiAnalysis.key_factors.central_bank_policy.USA.analysis}</div>
+                  </div>
+                </div>
+                
+                {/* Corporate Earnings */}
+                <div className="flex items-start">
+                  <div className={`mt-1 h-3 w-3 rounded-full ${
+                    aiAnalysis.key_factors.corporate_earnings.sentiment.includes('Positiv') ? 'bg-green-500' : 
+                    aiAnalysis.key_factors.corporate_earnings.sentiment.includes('Negativ') ? 'bg-red-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">Corporate Earnings</div>
+                    <div className="text-xs text-gray-500">{aiAnalysis.key_factors.corporate_earnings.analysis}</div>
+                  </div>
+                </div>
+                
+                {/* Geopolitical Events */}
+                <div className="flex items-start">
+                  <div className={`mt-1 h-3 w-3 rounded-full ${
+                    aiAnalysis.key_factors.geopolitical_events.sentiment.includes('Positiv') ? 'bg-green-500' : 
+                    aiAnalysis.key_factors.geopolitical_events.sentiment.includes('Negativ') ? 'bg-red-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">Geopolitical Events</div>
+                    <div className="text-xs text-gray-500">{aiAnalysis.key_factors.geopolitical_events.analysis}</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

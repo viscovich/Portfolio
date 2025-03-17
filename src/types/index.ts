@@ -65,6 +65,101 @@ export interface MarketSentiment {
   sentiment_score: number;
   summary: string;
   created_at: string;
+  detailed_data?: DetailedMarketSentiment;
+}
+
+export interface DetailedMarketSentiment {
+  current_sentiment: {
+    market_sentiment: {
+      score: number;
+      analysis: string;
+    }
+  };
+  key_factors: {
+    economic_data: {
+      EU: {
+        sentiment: string;
+        analysis: string;
+      };
+      USA: {
+        sentiment: string;
+        analysis: string;
+      };
+    };
+    central_bank_policy: {
+      EU: {
+        sentiment: string;
+        analysis: string;
+      };
+      USA: {
+        sentiment: string;
+        analysis: string;
+      };
+    };
+    corporate_earnings: {
+      sentiment: string;
+      analysis: string;
+    };
+    geopolitical_events: {
+      sentiment: string;
+      analysis: string;
+    };
+    global_sentiment_index: {
+      sentiment: string;
+      analysis: string;
+    };
+  };
+  market_outlook: {
+    equity_markets: {
+      USA: MarketOutlookItem;
+      EU: MarketOutlookItem;
+      Italy: MarketOutlookItem;
+      emerging_markets: MarketOutlookItem;
+    };
+    bond_markets: {
+      USA: MarketOutlookItem;
+      EU: MarketOutlookItem;
+      Italy: MarketOutlookItem;
+      emerging_markets: MarketOutlookItem;
+    };
+    commodities: {
+      gold?: MarketOutlookItem;      // English names
+      oil?: MarketOutlookItem;
+      copper?: MarketOutlookItem;
+      gas_natural?: MarketOutlookItem;
+      pgm?: MarketOutlookItem;
+      oro?: MarketOutlookItem;       // Italian names 
+      petrolio?: MarketOutlookItem;
+      rame?: MarketOutlookItem;
+      gas_naturale?: MarketOutlookItem;
+      metalli_pgm?: MarketOutlookItem;
+    };
+  };
+  sector_outlook: {
+    financials: SectorOutlookItem;
+    real_estate: SectorOutlookItem;
+    consumer_discretionary: SectorOutlookItem;
+    technology: SectorOutlookItem;
+    industrials: SectorOutlookItem;
+    materials: SectorOutlookItem;
+    consumer_staples: SectorOutlookItem;
+    health_care: SectorOutlookItem;
+    energy: SectorOutlookItem;
+    communication_services: SectorOutlookItem;
+    utilities: SectorOutlookItem;
+  };
+}
+
+export interface MarketOutlookItem {
+  sentiment: string;
+  analysis: string;
+  index: string;
+}
+
+export interface SectorOutlookItem {
+  sentiment: string;
+  analysis: string;
+  index: string;
 }
 
 export interface AIPortfolioRequest {
