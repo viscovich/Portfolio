@@ -56,16 +56,18 @@ const mockPortfolios: Portfolio[] = [
 
 // Mock assets data
 const mockAssets: Asset[] = [
-  { id: 1, ticker: 'VTI', name: 'Vanguard Total Stock Market ETF', type: 'ETF', sector: 'Broad Market', region: 'US', description: 'US Total Market Index' },
-  { id: 2, ticker: 'VXUS', name: 'Vanguard Total International Stock ETF', type: 'ETF', sector: 'Broad Market', region: 'International', description: 'International Stock Index' },
-  { id: 3, ticker: 'BND', name: 'Vanguard Total Bond Market ETF', type: 'ETF', sector: 'Bonds', region: 'US', description: 'US Bond Index' },
-  { id: 4, ticker: 'BNDX', name: 'Vanguard Total International Bond ETF', type: 'ETF', sector: 'Bonds', region: 'International', description: 'International Bond Index' },
-  { id: 5, ticker: 'VGT', name: 'Vanguard Information Technology ETF', type: 'ETF', sector: 'Technology', region: 'US', description: 'Technology Sector' },
-  { id: 6, ticker: 'VHT', name: 'Vanguard Health Care ETF', type: 'ETF', sector: 'Healthcare', region: 'US', description: 'Healthcare Sector' },
-  { id: 7, ticker: 'VDC', name: 'Vanguard Consumer Staples ETF', type: 'ETF', sector: 'Consumer Staples', region: 'US', description: 'Consumer Staples Sector' },
-  { id: 8, ticker: 'VOX', name: 'Vanguard Communication Services ETF', type: 'ETF', sector: 'Communication', region: 'US', description: 'Communication Sector' },
-  { id: 9, ticker: 'VCR', name: 'Vanguard Consumer Discretionary ETF', type: 'ETF', sector: 'Consumer Discretionary', region: 'US', description: 'Consumer Discretionary Sector' },
-  { id: 10, ticker: 'VFH', name: 'Vanguard Financials ETF', type: 'ETF', sector: 'Financials', region: 'US', description: 'Financial Sector' }
+  { id: 1, ticker: 'IDX000000000', name: 'Liquidità', type: 'Cash', sector: null, region: null, description: 'Liquidità' },
+  { id: 2, ticker: 'LU1190417599', name: 'Obbligazionari Monetari', type: 'Bond', sector: 'Monetary', region: 'Global', description: 'Obbligazionari Monetari' },
+  { id: 3, ticker: 'LU1287023003', name: 'Obbligazionari Governativi', type: 'Bond', sector: 'Government', region: 'Global', description: 'Obbligazionari Governativi' },
+  { id: 4, ticker: 'IE000JBB8CR7', name: 'Obbligazionari Corporate', type: 'Bond', sector: 'Corporate', region: 'Global', description: 'Obbligazionari Corporate' },
+  { id: 5, ticker: 'LU1686830909', name: 'Obbligazionari Emerging Markets', type: 'Bond', sector: 'Emerging Markets', region: 'Emerging Markets', description: 'Obbligazionari Emerging Markets' },
+  { id: 6, ticker: 'LU1215415214', name: 'Obbligazionari High Yield', type: 'Bond', sector: 'High Yield', region: 'Global', description: 'Obbligazionari High Yield' },
+  { id: 7, ticker: 'LU1650491282', name: 'Obbligazionari Altri', type: 'Bond', sector: 'Various', region: 'Global', description: 'Obbligazionari Altri' },
+  { id: 8, ticker: 'IE00B643RZ01', name: 'Absolute Return Hedge', type: 'Alternative', sector: 'Hedge Fund', region: 'Global', description: 'Absolute Return Hedge' },
+  { id: 9, ticker: 'DE000ETF7011', name: 'Bilanciati', type: 'Multi-Asset', sector: 'Balanced', region: 'Global', description: 'Bilanciati' },
+  { id: 10, ticker: 'IE000E66LX20', name: 'Azionari Settoriali', type: 'Stock', sector: 'Various Sectors', region: 'Global', description: 'Azionari Settoriali' },
+  { id: 11, ticker: 'LU1829220216', name: 'Azionari Geografici', type: 'Stock', sector: 'Geographic Focus', region: 'Global', description: 'Azionari Geografici' },
+  { id: 12, ticker: 'FR0010429068', name: 'Azionari Emerging Markets', type: 'Stock', sector: 'Emerging Markets', region: 'Emerging Markets', description: 'Azionari Emerging Markets' }
 ];
 
 // Generate mock metrics for each asset
