@@ -2,59 +2,11 @@ import { supabase } from '../lib/supabase';
 import { getRandomChartData, calculatePortfolioMetrics } from '../lib/utils';
 import type { Portfolio, PortfolioAsset, Asset, AssetMetrics, AIPortfolioRequest } from '../types';
 
-// Mock data for development
-const mockPortfolios: Portfolio[] = [
-  {
-    id: 1,
-    name: 'test dragon',
-    created_at: '2025/05/05 19:02',
-    user_id: 'user-123',
-    description: 'Test portfolio with various ETFs',
-    is_ai_generated: false
-  },
-  {
-    id: 2,
-    name: 'Capitolo test',
-    created_at: '2025/05/05 18:16',
-    user_id: 'user-123',
-    description: 'Balanced portfolio for medium risk',
-    is_ai_generated: false
-  },
-  {
-    id: 3,
-    name: 'etfs test',
-    created_at: '2025/05/05 14:14',
-    user_id: 'user-123',
-    description: 'ETF-only portfolio',
-    is_ai_generated: false
-  },
-  {
-    id: 4,
-    name: 'tomapicci',
-    created_at: '2025/05/05 11:17',
-    user_id: 'user-123',
-    description: 'High growth portfolio',
-    is_ai_generated: false
-  },
-  {
-    id: 5,
-    name: 'top 10 etf dr',
-    created_at: '2025/05/05 14:35',
-    user_id: 'user-123',
-    description: 'Top 10 ETFs by performance',
-    is_ai_generated: true
-  },
-  {
-    id: 6,
-    name: 'top 10 funds UI',
-    created_at: '2025/01/25 17:30',
-    user_id: 'user-123',
-    description: 'Top 10 mutual funds',
-    is_ai_generated: true
-  }
-];
+// Start with an empty list of portfolios
+const mockPortfolios: Portfolio[] = [];
+const mockPortfolioAssets: Record<number, PortfolioAsset[]> = {};
 
-// Mock assets data
+// Mock assets data (universe of available assets)
 const mockAssets: Asset[] = [
   { id: 1, ticker: 'IDX000000000', name: 'Liquidità', type: 'Cash', sector: null, region: null, description: 'Liquidità' },
   { id: 2, ticker: 'LU1190417599', name: 'Obbligazionari Monetari', type: 'Bond', sector: 'Monetary', region: 'Global', description: 'Obbligazionari Monetari' },
@@ -89,65 +41,19 @@ mockAssets.forEach(asset => {
   };
 });
 
-// Generate mock portfolio assets
-const mockPortfolioAssets: Record<number, PortfolioAsset[]> = {};
-mockPortfolios.forEach(portfolio => {
-  const assetCount = Math.floor(Math.random() * 5) + 3; // 3-7 assets per portfolio
-  const assets: PortfolioAsset[] = [];
-  
-  // Select random assets
-  const selectedAssetIds = new Set<number>();
-  while (selectedAssetIds.size < assetCount) {
-    const assetId = Math.floor(Math.random() * mockAssets.length) + 1;
-    selectedAssetIds.add(assetId);
-  }
-  
-  // Create portfolio assets with allocations
-  let remainingAllocation = 100;
-  const assetIds = Array.from(selectedAssetIds);
-  
-  assetIds.forEach((assetId, index) => {
-    const isLast = index === assetIds.length - 1;
-    const allocation = isLast ? remainingAllocation : Math.floor(Math.random() * remainingAllocation * 0.7);
-    remainingAllocation -= allocation;
-    
-    const asset = mockAssets.find(a => a.id === assetId)!;
-    const metrics = mockAssetMetrics[assetId];
-    
-    assets.push({
-      id: portfolio.id * 100 + index,
-      portfolio_id: portfolio.id,
-      asset_id: assetId,
-      allocation,
-      asset: {
-        ...asset,
-        metrics
-      }
-    });
-  });
-  
-  mockPortfolioAssets[portfolio.id] = assets;
-});
+// Note: The generation of mockPortfolioAssets and calculation of metrics for mockPortfolios
+// is removed as mockPortfolios now starts empty. These will be populated dynamically.
 
-// Calculate portfolio metrics
-mockPortfolios.forEach(portfolio => {
-  const assets = mockPortfolioAssets[portfolio.id] || [];
-  portfolio.assets = assets;
-  portfolio.metrics = calculatePortfolioMetrics(assets);
-});
+// Helper to parse percentage strings like "12.34%" or "-1.23%" to numbers
+function parsePercentageString(value?: string): number | undefined {
+  if (typeof value !== 'string') return undefined;
+  const num = parseFloat(value.replace('%', ''));
+  return isNaN(num) ? undefined : num;
+}
 
 export async function getPortfolios(): Promise<Portfolio[]> {
   try {
-    // In a real app, this would fetch from Supabase
-    // const { data, error } = await supabase
-    //   .from('portfolios')
-    //   .select('*')
-    //   .order('created_at', { ascending: false });
-    
-    // if (error) throw error;
-    // return data;
-    
-    return mockPortfolios;
+    return [...mockPortfolios]; // Return a copy
   } catch (error) {
     console.error('Error fetching portfolios:', error);
     return [];
@@ -156,66 +62,33 @@ export async function getPortfolios(): Promise<Portfolio[]> {
 
 export async function getPortfolioById(id: number): Promise<Portfolio | null> {
   try {
-    // In a real app, this would fetch from Supabase with joins
-    // const { data, error } = await supabase
-    //   .from('portfolios')
-    //   .select(`
-    //     *,
-    //     portfolio_assets(
-    //       *,
-    //       asset:assets(*)
-    //     )
-    //   `)
-    //   .eq('id', id)
-    //   .single();
-    
-    // if (error) throw error;
-    // return data;
-    
     const portfolio = mockPortfolios.find(p => p.id === id);
     if (!portfolio) return null;
     
-    return {
-      ...portfolio,
-      assets: mockPortfolioAssets[portfolio.id] || []
-    };
+    // Deep copy to avoid modifying original mock data if details are changed later
+    const portfolioCopy = JSON.parse(JSON.stringify(portfolio));
+    portfolioCopy.assets = mockPortfolioAssets[portfolio.id] ? JSON.parse(JSON.stringify(mockPortfolioAssets[portfolio.id])) : [];
+    return portfolioCopy;
+
   } catch (error) {
     console.error(`Error fetching portfolio ${id}:`, error);
     return null;
   }
 }
 
-export async function createPortfolio(portfolio: Omit<Portfolio, 'id' | 'created_at'>): Promise<Portfolio | null> {
+export async function createPortfolio(portfolio: Omit<Portfolio, 'id' | 'created_at' | 'assets' | 'metrics'>): Promise<Portfolio | null> {
   try {
-    // In a real app, this would insert into Supabase
-    // const { data, error } = await supabase
-    //   .from('portfolios')
-    //   .insert(portfolio)
-    //   .select()
-    //   .single();
-    
-    // if (error) throw error;
-    // return data;
-    
     const newPortfolio: Portfolio = {
       id: mockPortfolios.length + 1,
       created_at: new Date().toISOString(),
       ...portfolio,
-      assets: [],
-      metrics: {
-        return_1y: 0,
-        return_3y: 0,
-        volatility_3y: 0,
-        sharpe_3y: 0,
-        dividend_yield: 0,
-        expense_ratio: 0,
-        risk_score: 0,
-        asset_count: 0
-      }
+      assets: [], // Initialize with empty assets
+      metrics: calculatePortfolioMetrics([]), // Initialize with zeroed metrics
     };
     
     mockPortfolios.push(newPortfolio);
-    return newPortfolio;
+    mockPortfolioAssets[newPortfolio.id] = []; // Initialize in mockPortfolioAssets
+    return JSON.parse(JSON.stringify(newPortfolio));
   } catch (error) {
     console.error('Error creating portfolio:', error);
     return null;
@@ -224,7 +97,6 @@ export async function createPortfolio(portfolio: Omit<Portfolio, 'id' | 'created
 
 export async function createAIPortfolio(request: AIPortfolioRequest): Promise<Portfolio | null> {
   try {
-    // Create a description based on the optimization strategy
     let riskDescription: string;
     if (request.optimization_strategy === 'risk_level' && request.risk_level !== undefined) {
       riskDescription = `DRC level ${request.risk_level} (on a scale of 1-5)`;
@@ -234,167 +106,145 @@ export async function createAIPortfolio(request: AIPortfolioRequest): Promise<Po
       riskDescription = 'AI-recommended risk profile';
     }
     
-    const newPortfolio: Portfolio = {
-      id: mockPortfolios.length + 1,
-      name: `AI Portfolio ${new Date().toLocaleDateString()}`,
-      created_at: new Date().toISOString(),
-      user_id: 'user-123',
-      description: `AI-generated portfolio based on ${request.stocks_percentage}% stocks, ${request.bonds_percentage}% bonds, ${request.alternatives_percentage}% alternatives with ${riskDescription}`,
-      is_ai_generated: true,
-      assets: [],
-      metrics: {
-        return_1y: 0,
-        return_3y: 0,
-        volatility_3y: 0,
-        sharpe_3y: 0,
-        dividend_yield: 0,
-        expense_ratio: 0,
-        risk_score: 0,
-        asset_count: 0
+    let portfolioName = `AI Portfolio ${new Date().toLocaleDateString()}`;
+    if (request.optimization_strategy === 'risk_level') {
+      if (request.drc_final_str && request.drc_final_str.trim() !== '') {
+        portfolioName += ` DRC ${request.drc_final_str}`;
+      } else if (request.risk_level !== undefined) {
+        portfolioName += ` DRC ${request.risk_level}`;
       }
+    }
+
+    const newPortfolioData: Omit<Portfolio, 'id' | 'created_at' | 'assets' | 'metrics'> = {
+        name: portfolioName,
+        user_id: 'user-123', // Assuming a default user
+        description: `AI-generated portfolio based on ${request.stocks_percentage}% stocks, ${request.bonds_percentage}% bonds, ${request.alternatives_percentage}% alternatives with ${riskDescription}`,
+        is_ai_generated: true,
     };
+
+    const createdPortfolioBase = await createPortfolio(newPortfolioData);
+    if (!createdPortfolioBase) {
+        throw new Error("Base portfolio creation failed");
+    }
     
-    // Create portfolio assets
-    const assets: PortfolioAsset[] = [];
+    const portfolioAssetsForStorage: PortfolioAsset[] = [];
     
-    // If we have suggested assets from the AI, use those
     if (request.suggested_assets && request.suggested_assets.length > 0) {
-      console.log('Using AI suggested assets for portfolio creation:', request.suggested_assets);
-      
-      // Map the suggested assets to portfolio assets
       request.suggested_assets.forEach((suggestedAsset, index) => {
-        // Find a matching asset in our mock assets by ticker
-        const matchingAsset = mockAssets.find(a => a.ticker === suggestedAsset.ticker);
+        let assetIdToUse: number;
+        let assetDefinition: Asset;
+
+        const existingMockAsset = mockAssets.find(a => a.ticker === suggestedAsset.ticker);
         
-        if (matchingAsset) {
-          assets.push({
-            id: newPortfolio.id * 100 + index,
-            portfolio_id: newPortfolio.id,
-            asset_id: matchingAsset.id,
-            allocation: suggestedAsset.allocation,
-            asset: {
-              ...matchingAsset,
-              metrics: mockAssetMetrics[matchingAsset.id]
-            }
-          });
+        if (existingMockAsset) {
+          assetIdToUse = existingMockAsset.id;
+          assetDefinition = { ...existingMockAsset };
         } else {
-          // If we don't have the asset in our mock data, create a new one
-          const newAssetId = mockAssets.length + index + 1;
+          const newAssetId = mockAssets.length + 1;
           const newAsset: Asset = {
             id: newAssetId,
             ticker: suggestedAsset.ticker,
-            name: suggestedAsset.name,
-            type: suggestedAsset.type,
+            name: suggestedAsset.name, 
+            type: suggestedAsset.type, 
             description: `${suggestedAsset.name} (${suggestedAsset.ticker})`,
             sector: null,
             region: null
           };
+          mockAssets.push(newAsset); 
+          assetIdToUse = newAssetId;
+          assetDefinition = { ...newAsset };
           
-          // Create metrics for the new asset
-          mockAssetMetrics[newAssetId] = {
-            id: newAssetId,
-            asset_id: newAssetId,
+          // Create default metrics for the truly new asset
+           mockAssetMetrics[assetIdToUse] = {
+            id: assetIdToUse,
+            asset_id: assetIdToUse,
             date: new Date().toISOString(),
             price: parseFloat((Math.random() * 500 + 50).toFixed(2)),
-            return_1y: parseFloat((Math.random() * 30 - 5).toFixed(2)),
-            return_3y: parseFloat((Math.random() * 60 - 10).toFixed(2)),
-            volatility_3y: parseFloat((Math.random() * 20 + 5).toFixed(2)),
+            return_1y: 0, // Default to 0, will be overridden if img data exists
+            return_3y: 0, // Default to 0
+            volatility_3y: 0, // Default to 0
             sharpe_3y: parseFloat((Math.random() * 3).toFixed(2)),
             dividend_yield: parseFloat((Math.random() * 5).toFixed(2)),
             expense_ratio: parseFloat((Math.random() * 1).toFixed(2)),
             risk_score: parseFloat((Math.random() * 10).toFixed(2)),
-            chart_data: getRandomChartData(30, Math.random() > 0.3 ? 'up' : Math.random() > 0.5 ? 'down' : 'volatile')
+            chart_data: getRandomChartData(30, 'volatile')
           };
-          
-          // Add the new asset to our mock assets
-          mockAssets.push(newAsset);
-          
-          // Add the asset to the portfolio
-          assets.push({
-            id: newPortfolio.id * 100 + index,
-            portfolio_id: newPortfolio.id,
-            asset_id: newAssetId,
-            allocation: suggestedAsset.allocation,
-            asset: {
-              ...newAsset,
-              metrics: mockAssetMetrics[newAssetId]
-            }
-          });
         }
-      });
-    } else {
-      // Fallback to the original random asset allocation if no suggestions are provided
-      console.log('No AI suggestions provided, using random asset allocation');
-      
-      // Add stock ETFs
-      const stockAssets = mockAssets.filter(a => a.sector !== 'Bonds');
-      const stockAllocation = request.stocks_percentage;
-      let remainingStockAllocation = stockAllocation;
-      
-      for (let i = 0; i < 3 && i < stockAssets.length; i++) {
-        const asset = stockAssets[i];
-        const isLast = i === 2 || i === stockAssets.length - 1;
-        const allocation = isLast ? remainingStockAllocation : Math.floor(Math.random() * remainingStockAllocation * 0.7);
-        remainingStockAllocation -= allocation;
+
+        // Ensure mockAssetMetrics entry exists (it should if existingMockAsset was found, or created if new)
+        if (!mockAssetMetrics[assetIdToUse]) { 
+            // This case should ideally be covered by the new asset creation logic above,
+            // but as a safeguard, create default metrics here too.
+            mockAssetMetrics[assetIdToUse] = {
+                id: assetIdToUse,
+                asset_id: assetIdToUse,
+                date: new Date().toISOString(),
+                price: parseFloat((Math.random() * 500 + 50).toFixed(2)),
+                return_1y: 0, 
+                return_3y: 0, 
+                volatility_3y: 0, 
+                sharpe_3y: parseFloat((Math.random() * 3).toFixed(2)),
+                dividend_yield: parseFloat((Math.random() * 5).toFixed(2)),
+                expense_ratio: parseFloat((Math.random() * 1).toFixed(2)),
+                risk_score: parseFloat((Math.random() * 10).toFixed(2)),
+                chart_data: getRandomChartData(30, 'volatile')
+            };
+        }
         
-        assets.push({
-          id: newPortfolio.id * 100 + i,
-          portfolio_id: newPortfolio.id,
-          asset_id: asset.id,
-          allocation,
-          asset: {
-            ...asset,
-            metrics: mockAssetMetrics[asset.id]
+        // Override metrics with values from image data if provided
+        const r1y_from_img = parsePercentageString(suggestedAsset.return1y_img);
+        const r3y_from_img = parsePercentageString(suggestedAsset.return3y_img);
+        const vol_from_img = parsePercentageString(suggestedAsset.volatility_img);
+
+        if (r1y_from_img !== undefined) {
+          mockAssetMetrics[assetIdToUse].return_1y = r1y_from_img;
+        }
+        if (r3y_from_img !== undefined) {
+          mockAssetMetrics[assetIdToUse].return_3y = r3y_from_img;
+        }
+        if (vol_from_img !== undefined) {
+          mockAssetMetrics[assetIdToUse].volatility_3y = vol_from_img;
+        }
+        
+        portfolioAssetsForStorage.push({
+          id: createdPortfolioBase.id * 100 + index, // Ensure unique ID for portfolio asset entry
+          portfolio_id: createdPortfolioBase.id,
+          asset_id: assetIdToUse,
+          allocation: suggestedAsset.allocation,
+          asset: { 
+            ...assetDefinition,
+            metrics: { ...mockAssetMetrics[assetIdToUse] } // Attach the (potentially updated) metrics
           }
         });
-      }
-      
-      // Add bond ETFs
-      const bondAssets = mockAssets.filter(a => a.sector === 'Bonds');
-      const bondAllocation = request.bonds_percentage;
-      let remainingBondAllocation = bondAllocation;
-      
-      for (let i = 0; i < 2 && i < bondAssets.length; i++) {
-        const asset = bondAssets[i];
-        const isLast = i === 1 || i === bondAssets.length - 1;
-        const allocation = isLast ? remainingBondAllocation : Math.floor(Math.random() * remainingBondAllocation * 0.7);
-        remainingBondAllocation -= allocation;
-        
-        assets.push({
-          id: newPortfolio.id * 100 + i + 3,
-          portfolio_id: newPortfolio.id,
-          asset_id: asset.id,
-          allocation,
-          asset: {
-            ...asset,
-            metrics: mockAssetMetrics[asset.id]
-          }
-        });
-      }
-      
-      // Add alternative assets (using some ETFs as alternatives for demo)
-      const altAllocation = request.alternatives_percentage;
-      const altAsset = mockAssets[Math.floor(Math.random() * mockAssets.length)];
-      
-      assets.push({
-        id: newPortfolio.id * 100 + 5,
-        portfolio_id: newPortfolio.id,
-        asset_id: altAsset.id,
-        allocation: altAllocation,
-        asset: {
-          ...altAsset,
-          metrics: mockAssetMetrics[altAsset.id]
-        }
       });
     }
     
-    newPortfolio.assets = assets;
-    newPortfolio.metrics = calculatePortfolioMetrics(assets);
+    // Calculate base metrics (which includes calculated returns and random placeholders for others)
+    const calculatedMetrics = calculatePortfolioMetrics(portfolioAssetsForStorage);
+
+    // Parse DR and DRC strings from request if they exist (from webhook)
+    const drOptimizedNum = request.dr_optimized_str ? parseFloat(request.dr_optimized_str) : undefined;
+    const drcFinalNum = request.drc_final_str ? parseInt(request.drc_final_str, 10) : undefined; // DRC seems to be an integer
+
+    // Override calculated/placeholder metrics if values from webhook are valid
+    if (drOptimizedNum !== undefined && !isNaN(drOptimizedNum)) {
+        calculatedMetrics.dr_optimized = drOptimizedNum;
+    }
+    if (drcFinalNum !== undefined && !isNaN(drcFinalNum)) {
+        calculatedMetrics.risk_score = drcFinalNum; // Override risk_score with DRC from webhook
+    }
+
+    // Update the portfolio in mockPortfolios and mockPortfolioAssets
+    const portfolioIndex = mockPortfolios.findIndex(p => p.id === createdPortfolioBase.id);
+    if (portfolioIndex !== -1) {
+        mockPortfolios[portfolioIndex].assets = portfolioAssetsForStorage;
+        mockPortfolios[portfolioIndex].metrics = calculatedMetrics; // Use the final metrics object
+        mockPortfolioAssets[createdPortfolioBase.id] = portfolioAssetsForStorage;
+        // Return a deep copy of the final portfolio object
+        return JSON.parse(JSON.stringify(mockPortfolios[portfolioIndex]));
+    }
     
-    mockPortfolios.push(newPortfolio);
-    mockPortfolioAssets[newPortfolio.id] = assets;
-    
-    return newPortfolio;
+    return null; // Should not happen if base portfolio was created
   } catch (error) {
     console.error('Error creating AI portfolio:', error);
     return null;
@@ -403,15 +253,6 @@ export async function createAIPortfolio(request: AIPortfolioRequest): Promise<Po
 
 export async function getAssets(): Promise<Asset[]> {
   try {
-    // In a real app, this would fetch from Supabase
-    // const { data, error } = await supabase
-    //   .from('assets')
-    //   .select('*')
-    //   .order('name');
-    
-    // if (error) throw error;
-    // return data;
-    
     return mockAssets.map(asset => ({
       ...asset,
       metrics: mockAssetMetrics[asset.id]
@@ -424,16 +265,6 @@ export async function getAssets(): Promise<Asset[]> {
 
 export async function getAssetById(id: number): Promise<Asset | null> {
   try {
-    // In a real app, this would fetch from Supabase
-    // const { data, error } = await supabase
-    //   .from('assets')
-    //   .select('*')
-    //   .eq('id', id)
-    //   .single();
-    
-    // if (error) throw error;
-    // return data;
-    
     const asset = mockAssets.find(a => a.id === id);
     if (!asset) return null;
     

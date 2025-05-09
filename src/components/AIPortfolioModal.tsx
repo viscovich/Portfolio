@@ -4,6 +4,40 @@ import { createAIPortfolio } from '../services/portfolioService';
 import { getAIPortfolioSuggestion, testAIConnection } from '../services/aiService';
 import AISettingsModal from './AISettingsModal';
 
+interface ImageDataRow { // For the static image data
+  isin: string;
+  return1y: string;
+  return3y: string;
+  volatility: string;
+  trend: string;
+}
+
+// Combined interface for what will be stored in aiSuggestion.suggestions
+interface CombinedAssetData {
+  isin: string;
+  return1y: string;
+  return3y: string;
+  volatility: string;
+  trend: string;
+  allocation?: number; // From webhook or AI
+  name?: string;       // From AI, or default
+  type?: string;       // From AI, or default
+}
+
+const imageData: ImageDataRow[] = [
+  { isin: 'IE00B643RZ01', return1y: '-5.81%', return3y: '10.26%', volatility: '10.56%', trend: 'down' },
+  { isin: 'LU1686830909', return1y: '3.28%', return3y: '-6.64%', volatility: '6.90%', trend: 'up' },
+  { isin: 'DE000ETF7011', return1y: '6.07%', return3y: '10.00%', volatility: '9.29%', trend: 'up' },
+  { isin: 'LU1829220216', return1y: '7.05%', return3y: '25.36%', volatility: '13.86%', trend: 'up' },
+  { isin: 'LU1287023003', return1y: '2.62%', return3y: '-2.47%', volatility: '6.13%', trend: 'up' },
+  { isin: 'LU1190417599', return1y: '3.76%', return3y: '8.49%', volatility: '0.45%', trend: 'up' },
+  { isin: 'IE000JBB8CR7', return1y: '4.42%', return3y: '3.69%', volatility: '6.16%', trend: 'up' },
+  { isin: 'FR0010429068', return1y: '7.96%', return3y: '6.17%', volatility: '13.61%', trend: 'up' },
+  { isin: 'LU1215415214', return1y: '5.99%', return3y: '10.54%', volatility: '7.17%', trend: 'up' },
+  { isin: 'IE000E66LX20', return1y: '2.32%', return3y: '29.37%', volatility: '16.19%', trend: 'up' },
+  { isin: 'LU1650491282', return1y: '-0.13%', return3y: '-6.51%', volatility: '8.35%', trend: 'down' },
+];
+
 interface AIPortfolioModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -59,9 +93,15 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
   
   const handleGetSuggestions = async () => {
     setLoading(true);
-    setAiSuggestion(null); // Reset previous suggestions
+    setAiSuggestion(null);
 
     try {
+      let rawSuggestionsFromSource: Array<{ ticker: string; name?: string; type?: string; allocation: number }> = [];
+      let analysisText = '';
+      let expectedReturn = 'N/A';
+      let drOptimizedStr = ''; // Store as string from webhook
+      let drcFinalStr = '';    // Store as string from webhook
+
       if (optimizationStrategy === 'risk_level') {
         const response = await fetch(`https://viscovich.duckdns.org/webhook/drc?profile=${riskLevel}`);
         if (!response.ok) {
@@ -71,11 +111,6 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
         
         if (data && data.output) {
           const lines = data.output.split('\n');
-          const suggestions: { ticker: string; name: string; type: string; allocation: number }[] = [];
-          let analysisText = '';
-          let drOptimized = '';
-          let drcFinal = '';
-
           const assetRegex = /^([A-Z0-9]+):\s*([\d.]+)\s*%/;
           const drOptimizedRegex = /DR\s+ottimizzato\s*:\s*([\d.]+)/;
           const drcFinalRegex = /DRC\s+finale\s*:\s*([\d.]+)/;
@@ -83,67 +118,88 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
           lines.forEach((line: string) => {
             const assetMatch = line.match(assetRegex);
             if (assetMatch) {
-              const allocation = parseFloat(assetMatch[2]);
-              if (allocation > 0) { // Only add if allocation is greater than 0
-                suggestions.push({
-                  ticker: assetMatch[1],
-                  name: 'N/A', // Name not provided by this API
-                  type: 'N/A', // Type not provided by this API
-                  allocation: allocation,
+              const allocationVal = parseFloat(assetMatch[2]);
+              if (allocationVal > 0) {
+                rawSuggestionsFromSource.push({
+                  ticker: assetMatch[1], // This is the ISIN
+                  allocation: allocationVal,
+                  name: 'N/A', 
+                  type: 'N/A',
                 });
               }
             }
             const drOptMatch = line.match(drOptimizedRegex);
-            if (drOptMatch) {
-              drOptimized = drOptMatch[1];
-            }
+            if (drOptMatch) drOptimizedStr = drOptMatch[1]; // Store the string value
             const drcFinalMatch = line.match(drcFinalRegex);
-            if (drcFinalMatch) {
-              drcFinal = drcFinalMatch[1];
-            }
+            if (drcFinalMatch) drcFinalStr = drcFinalMatch[1]; // Store the string value
           });
           
           analysisText = `Portfolio generated based on DRC Profile ${riskLevel}.`;
-          if (drOptimized) {
-            analysisText += ` Optimized DR: ${drOptimized}.`;
-          }
-          if (drcFinal) {
-            analysisText += ` Final DRC: ${drcFinal}.`;
-          }
-
-          setAiSuggestion({
-            analysis: analysisText,
-            expected_return: 'N/A', // Not provided by this API
-            suggestions: suggestions,
-          });
-          setStep(2);
+          if (drOptimizedStr) analysisText += ` Optimized DR: ${drOptimizedStr}.`;
+          if (drcFinalStr) analysisText += ` Final DRC: ${drcFinalStr}.`;
+          // expected_return remains 'N/A' for this path
         } else {
           throw new Error('Invalid data format from DRC API');
         }
-      } else {
-        // Original logic for other strategies
-        const suggestion = await getAIPortfolioSuggestion({
+      } else { // 'sharpe_ratio' or 'ai_recommended'
+        const suggestionFromAI = await getAIPortfolioSuggestion({
           stocks_percentage: allocation.stocks,
           bonds_percentage: allocation.bonds,
           alternatives_percentage: allocation.alternatives,
           optimization_strategy: optimizationStrategy,
-          // risk_level is not applicable here or handled by the service
         });
-        setAiSuggestion(suggestion);
-        setStep(2);
+        rawSuggestionsFromSource = suggestionFromAI.suggestions || [];
+        analysisText = suggestionFromAI.analysis || 'AI Recommended Portfolio.';
+        expectedReturn = suggestionFromAI.expected_return || 'N/A';
       }
+
+      // Merge rawSuggestionsFromSource with imageData
+      const mergedSuggestions: CombinedAssetData[] = rawSuggestionsFromSource.map(rawAsset => {
+        const imageAsset = imageData.find(img => img.isin === rawAsset.ticker);
+        if (imageAsset) {
+          return {
+            ...imageAsset, // isin, return1y, return3y, volatility, trend
+            allocation: rawAsset.allocation,
+            name: rawAsset.name || imageAsset.isin,
+            type: rawAsset.type || 'N/A',
+          };
+        }
+        // If no match in imageData, still include the asset from AI/webhook
+        return {
+          isin: rawAsset.ticker,
+          return1y: 'N/A',
+          return3y: 'N/A',
+          volatility: 'N/A',
+          trend: 'N/A',
+          allocation: rawAsset.allocation,
+          name: rawAsset.name || rawAsset.ticker,
+          type: rawAsset.type || 'N/A',
+        };
+      });
+
+      setAiSuggestion({
+        analysis: analysisText,
+        expected_return: expectedReturn,
+        suggestions: mergedSuggestions,
+        drOptimizedStr: drOptimizedStr, // Store DR string in state
+        drcFinalStr: drcFinalStr       // Store DRC string in state
+      });
+      setStep(2);
+
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
-      // Optionally, test AI connection or show a user-friendly error
-      // const testResult = await testAIConnection();
-      // console.log('AI Connection Test Result:', testResult);
-      // For now, just log the error. Consider adding user feedback.
+      const fallbackSuggestions: CombinedAssetData[] = imageData.map(imgAsset => ({
+        ...imgAsset,
+        allocation: undefined,
+        name: imgAsset.isin,
+        type: 'N/A',
+      }));
       setAiSuggestion({ 
         analysis: `Error fetching suggestions: ${error instanceof Error ? error.message : String(error)}`, 
         expected_return: 'N/A', 
-        suggestions: [] 
+        suggestions: fallbackSuggestions,
       });
-      setStep(2); // Go to step 2 to show the error message
+      setStep(2);
     } finally {
       setLoading(false);
     }
@@ -152,13 +208,25 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
   const handleCreatePortfolio = async () => {
     setLoading(true);
     try {
+      const assetsToSubmit = aiSuggestion?.suggestions?.map((s: CombinedAssetData) => ({
+        ticker: s.isin, 
+        name: s.name && s.name !== 'N/A' ? s.name : s.isin, 
+        type: s.type && s.type !== 'N/A' ? s.type : 'Unknown', 
+        allocation: s.allocation || 0,
+        return1y_img: s.return1y, // Pass along the string metric from imageData
+        return3y_img: s.return3y,   // Pass along the string metric from imageData
+        volatility_img: s.volatility // Pass along the string metric from imageData
+      }));
+
       await createAIPortfolio({
         stocks_percentage: allocation.stocks,
         bonds_percentage: allocation.bonds,
         alternatives_percentage: allocation.alternatives,
         optimization_strategy: optimizationStrategy,
         risk_level: optimizationStrategy === 'risk_level' ? riskLevel : undefined,
-        suggested_assets: aiSuggestion?.suggestions // Pass the AI suggestions to the portfolio creation function
+        dr_optimized_str: aiSuggestion?.drOptimizedStr, // Pass DR string
+        drc_final_str: aiSuggestion?.drcFinalStr,       // Pass DRC string
+        suggested_assets: assetsToSubmit
       });
       
       onSuccess();
@@ -384,33 +452,45 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({ isOpen, onClose, on
                     <thead className="bg-gray-50">
                       <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ticker
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
+                          ISIN
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Allocation
                         </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Return 1Y
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Return 3Y
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Volatility
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Trend
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {aiSuggestion.suggestions.map((asset: any, index: number) => (
+                      {aiSuggestion.suggestions.map((asset: CombinedAssetData, index: number) => (
                         <tr key={index}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {asset.ticker}
+                            {asset.isin}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {asset.name}
+                            {typeof asset.allocation === 'number' ? `${asset.allocation.toFixed(1)}%` : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {asset.type}
+                            {asset.return1y}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {asset.allocation.toFixed(1)}%
+                            {asset.return3y}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {asset.volatility}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {asset.trend}
                           </td>
                         </tr>
                       ))}

@@ -127,9 +127,11 @@ const PortfolioDetail: React.FC = () => {
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md">
-                <div className="text-sm text-gray-500 mb-1">Sharpe Ratio</div>
+                <div className="text-sm text-gray-500 mb-1">DR Ottimizzato</div>
                 <div className="text-xl font-semibold text-gray-900">
-                  {portfolio.metrics?.sharpe_3y.toFixed(2) || '0.00'}
+                  {typeof portfolio.metrics?.dr_optimized === 'number' 
+                    ? portfolio.metrics.dr_optimized.toFixed(2) 
+                    : 'N/A'}
                 </div>
               </div>
               
@@ -151,7 +153,10 @@ const PortfolioDetail: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Asset
+                    ISIN
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Asset Name
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
@@ -176,13 +181,11 @@ const PortfolioDetail: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {portfolio.assets?.map((asset) => (
                   <tr key={asset.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{asset.asset.ticker}</div>
-                          <div className="text-sm text-gray-500">{asset.asset.name}</div>
-                        </div>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {asset.asset.ticker}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {asset.asset.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {asset.asset.type}

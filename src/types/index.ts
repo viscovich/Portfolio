@@ -50,8 +50,9 @@ export interface PortfolioMetrics {
   sharpe_3y: number;
   dividend_yield: number;
   expense_ratio: number;
-  risk_score: number;
+  risk_score: number; // Represents DRC
   asset_count: number;
+  dr_optimized?: number; // Add field for Optimized DR from webhook
 }
 
 export interface ChartPoint {
@@ -168,11 +169,18 @@ export interface AIPortfolioRequest {
   alternatives_percentage: number;
   optimization_strategy: 'risk_level' | 'sharpe_ratio' | 'ai_recommended';
   risk_level?: number; // Integer from 1 to 5, only used when optimization_strategy is 'risk_level'
+  // Fields to carry DR/DRC strings from webhook response (portfolio level)
+  dr_optimized_str?: string; 
+  drc_final_str?: string;
   suggested_assets?: Array<{
     ticker: string;
     name: string;
     allocation: number;
     type: string;
+    // Fields to carry metrics from the user's image data (asset level)
+    return1y_img?: string;
+    return3y_img?: string;
+    volatility_img?: string;
   }>; // The suggested assets from the AI suggestion
 }
 
