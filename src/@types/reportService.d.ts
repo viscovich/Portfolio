@@ -1,4 +1,4 @@
-declare module '../services/reportService' {
+declare module '../../services/reportService' {
   export const generateReport: (
     file: File,
     prompt: string,

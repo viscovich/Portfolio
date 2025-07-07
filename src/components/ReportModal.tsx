@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, FileText, ArrowRight } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { generateReport } from '../services/reportService';
 
 const PROVIDERS = [
@@ -116,8 +117,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => {
             {report && (
               <div className="mt-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Report</h3>
-                <div className="p-4 bg-gray-50 rounded-md whitespace-pre-wrap">
-                  {report}
+                <div className="p-4 bg-gray-50 rounded-md prose max-w-none">
+                  <ReactMarkdown>{report}</ReactMarkdown>
                 </div>
               </div>
             )}
