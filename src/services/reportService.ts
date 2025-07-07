@@ -1,15 +1,31 @@
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker?url'; // 👈 importa il worker correttamente
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+
 export const generateReport = async (file: File, prompt: string, provider: string) => {
   try {
-    // Read file as base64 using FileReader
-    const base64File = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]); // Extract base64 data from data URL
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+    // Extract text from PDF
+    const extractPdfText = async (file: File): Promise<string> => {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      
+      for (let i = 0; i < pdf.numPages; i++) {
+        const page = await pdf.getPage(i + 1);
+        const textContent = await page.getTextContent();
+        // Filter out non-text items and extract text
+        const pageText = textContent.items
+          .filter(item => (item as any).str) // Ensure item has str property
+          .map(item => (item as any).str)    // Extract text content
+          .join(' ');
+        fullText += `\n\n--- Pagina ${i + 1} ---\n\n${pageText}`;
+      }
+      return fullText;
+    };
+
+    const pdfText = await extractPdfText(file);
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -24,18 +40,11 @@ export const generateReport = async (file: File, prompt: string, provider: strin
         messages: [
           {
             role: "system",
-            content: "Analizza il PDF del portafoglio e rispondi in italiano con un'analisi finanziaria professionale. Formatta la risposta in markdown con sezioni e tabelle."
+            content: "Analizza il testo estratto da un PDF di portafoglio e genera un report finanziario professionale in italiano. Usa markdown con sezioni e tabelle."
           },
           {
             role: "user",
-            content: prompt,
-            attachments: [
-              {
-                name: file.name,
-                content: base64File,
-                mime_type: "application/pdf"
-              }
-            ]
+            content: `${prompt}\n\n--- TESTO ESTRATTO DAL PDF ---\n${pdfText}`
           }
         ]
       })
