@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, FileText, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm'; // ✅ Aggiunto per tabelle e markdown esteso
 import { generateReport } from '../services/reportService';
 
 const PROVIDERS = [
@@ -35,7 +36,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = async () => {
     if (!file) return;
-    
+
     setLoading(true);
     try {
       const result = await generateReport(file, prompt, provider);
@@ -77,9 +78,9 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => {
                       {file ? file.name : 'test.pdf (default)'}
                     </p>
                   </div>
-                  <input 
-                    type="file" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    className="hidden"
                     accept=".pdf"
                     onChange={handleFileChange}
                   />
@@ -117,8 +118,10 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose }) => {
             {report && (
               <div className="mt-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Report</h3>
-                <div className="p-4 bg-gray-50 rounded-md prose max-w-none">
-                  <ReactMarkdown>{report}</ReactMarkdown>
+                <div className="p-4 bg-gray-50 rounded-md prose max-w-none overflow-auto">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {report}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
