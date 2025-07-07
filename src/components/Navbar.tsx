@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, FileText } from 'lucide-react';
 import AISettingsModal from './AISettingsModal';
+import ReportModal from './ReportModal';
 
 const Navbar: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,8 +20,15 @@ const Navbar: React.FC = () => {
           </div>
           <div className="flex items-center">
             <button 
-              onClick={() => setIsSettingsModalOpen(true)}
+              onClick={() => setIsReportModalOpen(true)}
               className="p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              title="Generate Report"
+            >
+              <FileText className="h-6 w-6" />
+            </button>
+            <button 
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="ml-3 p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               title="AI Settings"
             >
               <Settings className="h-6 w-6" />
@@ -31,6 +40,10 @@ const Navbar: React.FC = () => {
             <AISettingsModal
               isOpen={isSettingsModalOpen}
               onClose={() => setIsSettingsModalOpen(false)}
+            />
+            <ReportModal
+              isOpen={isReportModalOpen}
+              onClose={() => setIsReportModalOpen(false)}
             />
           </div>
         </div>
